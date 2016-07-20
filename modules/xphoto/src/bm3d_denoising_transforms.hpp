@@ -247,8 +247,8 @@ static void calcHaarThresholdMap3D(
 /// Transforms for 4x4 2D block
 
 // Forward transform 4x4 block
-template <typename T, typename TT>
-inline static void HaarColumn4x4(const T *src, TT *dst, const int &step)
+template <typename T, typename TT, int N>
+inline static void ForwardHaarTransform4(const T *src, TT *dst, const int &step)
 {
     const T *src0 = src;
     const T *src1 = src + 1 * step;
@@ -263,27 +263,10 @@ inline static void HaarColumn4x4(const T *src, TT *dst, const int &step)
     TT sum00 = (sum0 + sum1 + 1) >> 1;
     TT dif00 = sum0 - sum1;
 
-    dst[0 * 4] = sum00;
-    dst[1 * 4] = dif00;
-    dst[2 * 4] = dif0;
-    dst[3 * 4] = dif1;
-}
-
-template <typename TT>
-inline static void HaarRow4x4(const TT *src, TT *dst)
-{
-    TT sum0 = (src[0] + src[1] + 1) >> 1;
-    TT sum1 = (src[2] + src[3] + 1) >> 1;
-    TT dif0 = src[0] - src[1];
-    TT dif1 = src[2] - src[3];
-
-    TT sum00 = (sum0 + sum1 + 1) >> 1;
-    TT dif00 = sum0 - sum1;
-
-    dst[0] = sum00;
-    dst[1] = dif00;
-    dst[2] = dif0;
-    dst[3] = dif1;
+    dst[0 * N] = sum00;
+    dst[1 * N] = dif00;
+    dst[2 * N] = dif0;
+    dst[3 * N] = dif1;
 }
 
 template <typename T, typename TT>
@@ -293,65 +276,48 @@ inline static void Haar4x4(const T *ptr, TT *dst, const int &step)
 
     // Transform columns first
     for (int i = 0; i < 4; ++i)
-        HaarColumn4x4(ptr + i, temp + i, step);
+        ForwardHaarTransform4<T, TT, 4>(ptr + i, temp + i, step);
 
     // Then transform rows
     for (int i = 0; i < 4; ++i)
-        HaarRow4x4(temp + i * 4, dst + i * 4);
+        ForwardHaarTransform4<TT, TT, 1>(temp + i * 4, dst + i * 4, 1);
 }
 
-template <typename TT>
-inline static void InvHaarColumn4x4(TT *src, TT *dst)
+template <typename TT, int N>
+inline static void InvHaarTransform4(TT *src, TT *dst)
 {
-    TT src0 = src[0 * 4] * 2;
-    TT src1 = src[1 * 4];
-    TT src2 = src[2 * 4];
-    TT src3 = src[3 * 4];
+    TT src0 = src[0 * N] * 2;
+    TT src1 = src[1 * N];
+    TT src2 = src[2 * N];
+    TT src3 = src[3 * N];
 
     TT sum0 = src0 + src1;
     TT dif0 = src0 - src1;
 
-    dst[0 * 4] = (sum0 + src2) >> 1;
-    dst[1 * 4] = (sum0 - src2) >> 1;
-    dst[2 * 4] = (dif0 + src3) >> 1;
-    dst[3 * 4] = (dif0 - src3) >> 1;
+    dst[0 * N] = (sum0 + src2) >> 1;
+    dst[1 * N] = (sum0 - src2) >> 1;
+    dst[2 * N] = (dif0 + src3) >> 1;
+    dst[3 * N] = (dif0 - src3) >> 1;
 }
 
-template <typename TT>
-inline static void InvHaarRow4x4(TT *src, TT *dst)
+template <typename T>
+inline static void InvHaar4x4(T *src)
 {
-    TT src0 = src[0] * 2;
-    TT src1 = src[1];
-    TT src2 = src[2];
-    TT src3 = src[3];
-
-    TT sum0 = src0 + src1;
-    TT dif0 = src0 - src1;
-
-    dst[0] = (sum0 + src2) >> 1;
-    dst[1] = (sum0 - src2) >> 1;
-    dst[2] = (dif0 + src3) >> 1;
-    dst[3] = (dif0 - src3) >> 1;
-}
-
-template <typename TT>
-inline static void InvHaar4x4(TT *src)
-{
-    TT temp[16];
+    T temp[16];
 
     // Invert columns first
     for (int i = 0; i < 4; ++i)
-        InvHaarColumn4x4(src + i, temp + i);
+        InvHaarTransform4<T, 4>(src + i, temp + i);
 
     // Then invert rows
     for (int i = 0; i < 4; ++i)
-        InvHaarRow4x4(temp + i * 4, src + i * 4);
+        InvHaarTransform4<T, 1>(temp + i * 4, src + i * 4);
 }
 
 /// Transforms for 8x8 2D block
 
-template <typename T, typename TT>
-inline static void HaarColumn8x8(const T *src, TT *dst, const int &step)
+template <typename T, typename TT, int N>
+inline static void ForwardHaarTransform8(const T *src, TT *dst, const int &step)
 {
     const T *src0 = src;
     const T *src1 = src + 1 * step;
@@ -379,44 +345,14 @@ inline static void HaarColumn8x8(const T *src, TT *dst, const int &step)
     TT sum000 = (sum00 + sum11 + 1) >> 1;
     TT dif000 = sum00 - sum11;
 
-    dst[0 * 8] = sum000;
-    dst[1 * 8] = dif000;
-    dst[2 * 8] = dif00;
-    dst[3 * 8] = dif11;
-    dst[4 * 8] = dif0;
-    dst[5 * 8] = dif1;
-    dst[6 * 8] = dif2;
-    dst[7 * 8] = dif3;
-}
-
-template <typename TT>
-inline static void HaarRow8x8(const TT *src, TT *dst)
-{
-    TT sum0 = (src[0] + src[1] + 1) >> 1;
-    TT sum1 = (src[2] + src[3] + 1) >> 1;
-    TT sum2 = (src[4] + src[5] + 1) >> 1;
-    TT sum3 = (src[6] + src[7] + 1) >> 1;
-    TT dif0 = src[0] - src[1];
-    TT dif1 = src[2] - src[3];
-    TT dif2 = src[4] - src[5];
-    TT dif3 = src[6] - src[7];
-
-    TT sum00 = (sum0 + sum1 + 1) >> 1;
-    TT sum11 = (sum2 + sum3 + 1) >> 1;
-    TT dif00 = sum0 - sum1;
-    TT dif11 = sum2 - sum3;
-
-    TT sum000 = (sum00 + sum11 + 1) >> 1;
-    TT dif000 = sum00 - sum11;
-
-    dst[0] = sum000;
-    dst[1] = dif000;
-    dst[2] = dif00;
-    dst[3] = dif11;
-    dst[4] = dif0;
-    dst[5] = dif1;
-    dst[6] = dif2;
-    dst[7] = dif3;
+    dst[0 * N] = sum000;
+    dst[1 * N] = dif000;
+    dst[2 * N] = dif00;
+    dst[3 * N] = dif11;
+    dst[4 * N] = dif0;
+    dst[5 * N] = dif1;
+    dst[6 * N] = dif2;
+    dst[7 * N] = dif3;
 }
 
 template <typename T, typename TT>
@@ -426,24 +362,24 @@ inline static void Haar8x8(const T *ptr, TT *dst, const int &step)
 
     // Transform columns first
     for (int i = 0; i < 8; ++i)
-        HaarColumn8x8(ptr + i, temp + i, step);
+        ForwardHaarTransform8<T, TT, 8>(ptr + i, temp + i, step);
 
     // Then transform rows
     for (int i = 0; i < 8; ++i)
-        HaarRow8x8(temp + i * 8, dst + i * 8);
+        ForwardHaarTransform8<TT, TT, 1>(temp + i * 8, dst + i * 8, 1);
 }
 
-template <typename T>
-inline static void InvHaarColumn8x8(T *src, T *dst)
+template <typename T, int N>
+inline static void InvHaarTransform8(T *src, T *dst)
 {
     T src0 = src[0] * 2;
-    T src1 = src[1 * 8];
-    T src2 = src[2 * 8];
-    T src3 = src[3 * 8];
-    T src4 = src[4 * 8];
-    T src5 = src[5 * 8];
-    T src6 = src[6 * 8];
-    T src7 = src[7 * 8];
+    T src1 = src[1 * N];
+    T src2 = src[2 * N];
+    T src3 = src[3 * N];
+    T src4 = src[4 * N];
+    T src5 = src[5 * N];
+    T src6 = src[6 * N];
+    T src7 = src[7 * N];
 
     T sum0 = src0 + src1;
     T dif0 = src0 - src1;
@@ -453,58 +389,28 @@ inline static void InvHaarColumn8x8(T *src, T *dst)
     T sum11 = dif0 + src3;
     T dif11 = dif0 - src3;
 
-    dst[0 * 8] = (sum00 + src4) >> 1;
-    dst[1 * 8] = (sum00 - src4) >> 1;
-    dst[2 * 8] = (dif00 + src5) >> 1;
-    dst[3 * 8] = (dif00 - src5) >> 1;
-    dst[4 * 8] = (sum11 + src6) >> 1;
-    dst[5 * 8] = (sum11 - src6) >> 1;
-    dst[6 * 8] = (dif11 + src7) >> 1;
-    dst[7 * 8] = (dif11 - src7) >> 1;
+    dst[0 * N] = (sum00 + src4) >> 1;
+    dst[1 * N] = (sum00 - src4) >> 1;
+    dst[2 * N] = (dif00 + src5) >> 1;
+    dst[3 * N] = (dif00 - src5) >> 1;
+    dst[4 * N] = (sum11 + src6) >> 1;
+    dst[5 * N] = (sum11 - src6) >> 1;
+    dst[6 * N] = (dif11 + src7) >> 1;
+    dst[7 * N] = (dif11 - src7) >> 1;
 }
 
 template <typename T>
-inline static void InvHaarRow8x8(T *src, T *dst)
+inline static void InvHaar8x8(T *src)
 {
-    T src0 = src[0] * 2;
-    T src1 = src[1];
-    T src2 = src[2];
-    T src3 = src[3];
-    T src4 = src[4];
-    T src5 = src[5];
-    T src6 = src[6];
-    T src7 = src[7];
-
-    T sum0 = src0 + src1;
-    T dif0 = src0 - src1;
-
-    T sum00 = sum0 + src2;
-    T dif00 = sum0 - src2;
-    T sum11 = dif0 + src3;
-    T dif11 = dif0 - src3;
-
-    dst[0] = (sum00 + src4) >> 1;
-    dst[1] = (sum00 - src4) >> 1;
-    dst[2] = (dif00 + src5) >> 1;
-    dst[3] = (dif00 - src5) >> 1;
-    dst[4] = (sum11 + src6) >> 1;
-    dst[5] = (sum11 - src6) >> 1;
-    dst[6] = (dif11 + src7) >> 1;
-    dst[7] = (dif11 - src7) >> 1;
-}
-
-template <typename TT>
-inline static void InvHaar8x8(TT *src)
-{
-    TT temp[64];
+    T temp[64];
 
     // Invert columns first
     for (int i = 0; i < 8; ++i)
-        InvHaarColumn8x8(src + i, temp + i);
+        InvHaarTransform8<T, 8>(src + i, temp + i);
 
     // Then invert rows
     for (int i = 0; i < 8; ++i)
-        InvHaarRow8x8(temp + i * 8, src + i * 8);
+        InvHaarTransform8<T, 1>(temp + i * 8, src + i * 8);
 }
 
 /// 1D forward transformations
