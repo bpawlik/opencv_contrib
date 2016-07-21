@@ -141,16 +141,28 @@ Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep2(
         inverseHaar2D = InvHaar2x2<TT>;
         break;
     case 4:
-        haarTransform2D = Haar4x4;
-        inverseHaar2D = InvHaar4x4;
+        haarTransform2D = Haar4x4<T, TT>;
+        inverseHaar2D = InvHaar4x4<TT>;
         break;
     case 8:
-        haarTransform2D = Haar8x8;
-        inverseHaar2D = InvHaar8x8;
+        haarTransform2D = Haar8x8<T, TT>;
+        inverseHaar2D = InvHaar8x8<TT>;
+        break;
+    case 16:
+        haarTransform2D = ForwardHaarXxX<T, TT, 16>;
+        inverseHaar2D = InvHaarXxX<TT, 16>;
+        break;
+    case 32:
+        haarTransform2D = ForwardHaarXxX<T, TT, 32>;
+        inverseHaar2D = InvHaarXxX<TT, 32>;
+        break;
+    case 64:
+        haarTransform2D = ForwardHaarXxX<T, TT, 64>;
+        inverseHaar2D = InvHaarXxX<TT, 64>;
         break;
     default:
         CV_Error(Error::StsBadArg,
-            "Unsupported template size! Only 4 and 8 are supported currently.");
+            "Unsupported template size! Template size must be power of two in a range 2-64 (inclusive).");
     }
 
     // Precompute threshold map

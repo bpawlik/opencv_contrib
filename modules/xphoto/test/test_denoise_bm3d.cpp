@@ -47,8 +47,9 @@
 //#define TEST_TRANSFORMS
 
 #ifdef TEST_TRANSFORMS
-#include "..\..\photo\src\bm3d_denoising_invoker_commons.hpp"
-#include "..\..\photo\src\bm3d_denoising_transforms.hpp"
+#include "..\..\xphoto\src\bm3d_denoising_invoker_commons.hpp"
+#include "..\..\xphoto\src\bm3d_denoising_transforms.hpp"
+using namespace cv::xphoto;
 #endif
 
 #ifdef DUMP_RESULTS
@@ -155,6 +156,31 @@ namespace cvtest
     }
 
 #ifdef TEST_TRANSFORMS
+
+    TEST(xphoto_DenoisingBm3dTransforms, regression_2D_generic)
+    {
+        const int templateWindowSize = 8;
+        const int templateWindowSizeSq = templateWindowSize * templateWindowSize;
+
+        uchar src[templateWindowSizeSq];
+        short dst[templateWindowSizeSq];
+        short dstSec[templateWindowSizeSq];
+
+        // Initialize array
+        for (uchar i = 0; i < templateWindowSizeSq; ++i)
+            src[i] = (i % 10) * 10;
+
+        // Use tailored transforms
+        Haar8x8(src, dst, templateWindowSize);
+        InvHaar8x8(dst);
+
+        // Use generic transforms
+        ForwardHaarXxX<uchar, short, templateWindowSize>(src, dstSec, templateWindowSize);
+        InvHaarXxX<short, templateWindowSize>(dstSec);
+
+        for (unsigned i = 0; i < templateWindowSizeSq; ++i)
+            ASSERT_EQ(dst[i], dstSec[i]);
+    }
 
     TEST(xphoto_DenoisingBm3dTransforms, regression_2D_4x4)
     {

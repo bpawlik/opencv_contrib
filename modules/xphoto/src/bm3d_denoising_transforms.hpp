@@ -184,7 +184,7 @@ static void calcHaarThresholdMap1D(float *&thrMap1D, const int &numberOfElements
         fillHaarCoefficients1D(thrMap1D, idx, i);
 }
 
-// Method to calculate 1D threshold map based on the maximum number of elements
+// Method to calculate 2D threshold map based on the maximum number of elements
 // Allocates memory for the output array.
 static void calcHaarThresholdMap2D(float *&thrMap2D, const int &templateWindowSize)
 {
@@ -242,6 +242,120 @@ static void calcHaarThresholdMap3D(
 
     delete[] thrMap1D;
     delete[] thrMap2D;
+}
+
+/// Transforms for 2D block of arbitrary size
+
+template <int X>
+static void CalculateIndices(unsigned *diffIndices, const unsigned &size)
+{
+    unsigned diffIdx = 1;
+    unsigned diffAllIdx = 0;
+    for (unsigned i = 1; i <= X; i <<= 1)
+    {
+        diffAllIdx += (i >> 1);
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            diffIndices[diffIdx++] = size - (--diffAllIdx);
+        diffAllIdx += i;
+    }
+}
+
+template <typename T, typename TT, int X, int N>
+inline static void ForwardHaarTransformX(const T *src, TT *dst, const int &step)
+{
+    const unsigned size = X + (X << 1) - 2;
+    TT dstX[size]; 
+
+    // Fill dstX with source values
+    for (unsigned i = 0; i < X; ++i)
+        dstX[i] = *(src + i * step);
+
+    unsigned idx = 0, dstIdx = X;
+    for (unsigned i = X; i > 1; i >>= 1)
+    {
+        // Get sums
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = (dstX[idx + 2 * j] + dstX[idx + j * 2 + 1] + 1) >> 1;
+
+        // Get diffs
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = dstX[idx + 2 * j] - dstX[idx + j * 2 + 1];
+
+        idx = dstIdx - i;
+    }
+
+    // Calculate indices in the destination matrix.
+    unsigned diffIndices[X];
+    CalculateIndices<X>(diffIndices, size);
+
+    // Fill in destination matrix
+    dst[0] = dstX[size - 2];
+    for (int i = 1; i < X; ++i)
+        dst[i * N] = dstX[diffIndices[i]];
+}
+
+template <typename T, typename TT, int X>
+inline static void ForwardHaarXxX(const T *ptr, TT *dst, const int &step)
+{
+    TT temp[X * X];
+
+    // Transform columns first
+    for (unsigned i = 0; i < X; ++i)
+        ForwardHaarTransformX<T, TT, X, X>(ptr + i, temp + i, step);
+
+    // Then transform rows
+    for (unsigned i = 0; i < X; ++i)
+        ForwardHaarTransformX<TT, TT, X, 1>(temp + i * X, dst + i * X, 1);
+}
+
+template <typename T, int X, int N>
+inline static void InvHaarTransformX(T *src, T *dst)
+{
+    const unsigned dstSize = (X << 1) - 2;
+    T dstX[dstSize];
+    T srcX[X];
+
+    // Fill srcX with source values
+    srcX[0] = src[0] * 2;
+    for (int i = 1; i < X; ++i)
+        srcX[i] = src[i * N];
+
+    // Take care of first two elements
+    dstX[0] = srcX[0] + srcX[1];
+    dstX[1] = srcX[0] - srcX[1];
+
+    unsigned idx = 0, dstIdx = 2;
+    for (int i = 4; i < X; i <<= 1)
+    {
+        for (int j = 0; j < (i >> 1); ++j)
+        {
+            dstX[dstIdx++] = dstX[idx + j] + srcX[idx + 2 + j];
+            dstX[dstIdx++] = dstX[idx + j] - srcX[idx + 2 + j];
+        }
+        idx += (i >> 1);
+    }
+
+    // Handle the last X elements
+    dstIdx = 0;
+    for (int j = 0; j < (X >> 1); ++j)
+    {
+        dst[dstIdx++ * N] = (dstX[idx + j] + srcX[idx + 2 + j]) >> 1;
+        dst[dstIdx++ * N] = (dstX[idx + j] - srcX[idx + 2 + j]) >> 1;
+    }
+}
+
+template <typename T, int X>
+inline static void InvHaarXxX(T *src)
+{
+    T temp[X * X];
+
+    // Invert columns first
+    for (int i = 0; i < X; ++i)
+        InvHaarTransformX<T, X, X>(src + i, temp + i);
+
+    // Then invert rows
+    for (int i = 0; i < X; ++i)
+        InvHaarTransformX<T, X, 1>(temp + i * X, src + i * X);
 }
 
 /// Transforms for 2x2 2D block
