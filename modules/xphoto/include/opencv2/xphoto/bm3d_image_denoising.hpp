@@ -73,7 +73,7 @@ namespace cv
         @param h Parameter regulating filter strength. Big h value perfectly removes noise but also
         removes image details, smaller h value preserves details but also preserves some noise.
         @param templateWindowSize Size in pixels of the template patch that is used for block-matching.
-        Should be power of 2. Currently supported is value 4 or 8 pixels.
+        Should be power of 2. Maximum supported value is 64.
         @param searchWindowSize Size in pixels of the window that is used to perform block-matching.
         Affect performance linearly: greater searchWindowsSize - greater denoising time.
         Must be larger than templateWindowSize.
@@ -119,7 +119,7 @@ namespace cv
         @param h Parameter regulating filter strength. Big h value perfectly removes noise but also
         removes image details, smaller h value preserves details but also preserves some noise.
         @param templateWindowSize Size in pixels of the template patch that is used for block-matching.
-        Should be power of 2. Currently supported is value 4 or 8 pixels.
+        Should be power of 2. Maximum supported value is 64.
         @param searchWindowSize Size in pixels of the window that is used to perform block-matching.
         Affect performance linearly: greater searchWindowsSize - greater denoising time.
         Must be larger than templateWindowSize.
