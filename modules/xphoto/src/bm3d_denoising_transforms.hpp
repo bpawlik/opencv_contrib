@@ -264,7 +264,7 @@ template <typename T, typename TT, int X, int N>
 inline static void ForwardHaarTransformX(const T *src, TT *dst, const int &step)
 {
     const unsigned size = X + (X << 1) - 2;
-    TT dstX[size]; 
+    TT dstX[size];
 
     // Fill dstX with source values
     for (unsigned i = 0; i < X; ++i)
