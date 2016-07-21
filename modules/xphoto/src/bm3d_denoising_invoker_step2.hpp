@@ -136,6 +136,10 @@ Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     // Select transforms depending on the template size
     switch (templateWindowSize_)
     {
+    case 2:
+        haarTransform2D = Haar2x2<T, TT>;
+        inverseHaar2D = InvHaar2x2<TT>;
+        break;
     case 4:
         haarTransform2D = Haar4x4;
         inverseHaar2D = InvHaar4x4;

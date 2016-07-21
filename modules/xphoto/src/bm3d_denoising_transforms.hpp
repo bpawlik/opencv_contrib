@@ -244,6 +244,57 @@ static void calcHaarThresholdMap3D(
     delete[] thrMap2D;
 }
 
+/// Transforms for 2x2 2D block
+
+// Forward transform 2x2 block
+template <typename T, typename TT, int N>
+inline static void ForwardHaarTransform2(const T *src, TT *dst, const int &step)
+{
+    const T *src0 = src;
+    const T *src1 = src + 1 * step;
+
+    dst[0 * N] = (*src0 + *src1 + 1) >> 1;
+    dst[1 * N] = *src0 - *src1;
+}
+
+template <typename T, typename TT>
+inline static void Haar2x2(const T *ptr, TT *dst, const int &step)
+{
+    TT temp[4];
+
+    // Transform columns first
+    for (int i = 0; i < 2; ++i)
+        ForwardHaarTransform2<T, TT, 2>(ptr + i, temp + i, step);
+
+    // Then transform rows
+    for (int i = 0; i < 2; ++i)
+        ForwardHaarTransform2<TT, TT, 1>(temp + i * 2, dst + i * 2, 1);
+}
+
+template <typename TT, int N>
+inline static void InvHaarTransform2(TT *src, TT *dst)
+{
+    TT src0 = src[0 * N] * 2;
+    TT src1 = src[1 * N];
+
+    dst[0 * N] = (src0 + src1) >> 1;
+    dst[1 * N] = (src0 - src1) >> 1;
+}
+
+template <typename T>
+inline static void InvHaar2x2(T *src)
+{
+    T temp[4];
+
+    // Invert columns first
+    for (int i = 0; i < 2; ++i)
+        InvHaarTransform2<T, 2>(src + i, temp + i);
+
+    // Then invert rows
+    for (int i = 0; i < 2; ++i)
+        InvHaarTransform2<T, 1>(temp + i * 2, src + i * 2);
+}
+
 /// Transforms for 4x4 2D block
 
 // Forward transform 4x4 block
