@@ -51,7 +51,7 @@ namespace cv
 namespace xphoto
 {
 
-template<typename ST, typename IT, typename UIT, typename D>
+template<typename ST, typename D, typename TT>
 static void bm3dDenoising_(
     const Mat& src,
     Mat& basic,
@@ -72,14 +72,14 @@ static void bm3dDenoising_(
         if (step == BM3D_STEP1 || step == BM3D_STEPALL)
         {
             parallel_for_(cv::Range(0, src.rows),
-                Bm3dDenoisingInvokerStep1<ST, IT, UIT, D, float, short>(
+                Bm3dDenoisingInvokerStep1<ST, D, float, TT>(
                     src, basic, templateWindowSize, searchWindowSize, h, hBMStep1, groupSize, slidingStep),
                 granularity);
         }
         if (step == BM3D_STEP2 || step == BM3D_STEPALL)
         {
             parallel_for_(cv::Range(0, src.rows),
-                Bm3dDenoisingInvokerStep2<ST, IT, UIT, D, float, short>(
+                Bm3dDenoisingInvokerStep2<ST, D, float, TT>(
                     src, basic, dst, templateWindowSize, searchWindowSize, h, hBMStep2, groupSize, slidingStep),
                 granularity);
         }
@@ -137,7 +137,7 @@ void bm3dDenoising(
     case cv::NORM_L2:
         switch (depth) {
         case CV_8U:
-            bm3dDenoising_<uchar, int, unsigned, DistSquared>(
+            bm3dDenoising_<uchar, DistSquared, short>(
                 src,
                 basic,
                 dst,
@@ -158,7 +158,7 @@ void bm3dDenoising(
     case cv::NORM_L1:
         switch (depth) {
         case CV_8U:
-            bm3dDenoising_<uchar, int, unsigned, DistAbs>(
+            bm3dDenoising_<uchar, DistAbs, short>(
                 src,
                 basic,
                 dst,
@@ -172,7 +172,7 @@ void bm3dDenoising(
                 step);
             break;
         case CV_16U:
-            bm3dDenoising_<ushort, int64, uint64, DistAbs>(
+            bm3dDenoising_<ushort, DistAbs, int>(
                 src,
                 basic,
                 dst,

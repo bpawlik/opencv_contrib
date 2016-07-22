@@ -52,7 +52,7 @@ namespace cv
 namespace xphoto
 {
 
-template <typename T, typename IT, typename UIT, typename D, typename WT, typename TT>
+template <typename T, typename D, typename WT, typename TT>
 struct Bm3dDenoisingInvokerStep2 : public ParallelLoopBody
 {
 public:
@@ -107,8 +107,8 @@ private:
     TT *thrMap_;
 };
 
-template <typename T, typename IT, typename UIT, typename D, typename WT, typename TT>
-Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep2(
+template <typename T, typename D, typename WT, typename TT>
+Bm3dDenoisingInvokerStep2<T, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     const Mat& src,
     const Mat& basic,
     Mat& dst,
@@ -174,14 +174,14 @@ Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     calcHaarThresholdMap3D(thrMap_, h, templateWindowSize_, groupSize_);
 }
 
-template<typename T, typename IT, typename UIT, typename D, typename WT, typename TT>
-inline Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::~Bm3dDenoisingInvokerStep2()
+template<typename T, typename D, typename WT, typename TT>
+inline Bm3dDenoisingInvokerStep2<T, D, WT, TT>::~Bm3dDenoisingInvokerStep2()
 {
     delete[] thrMap_;
 }
 
-template <typename T, typename IT, typename UIT, typename D, typename WT, typename TT>
-void Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::operator() (const Range& range) const
+template <typename T, typename D, typename WT, typename TT>
+void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) const
 {
     const int size = (range.size() + 2 * borderSize_) * srcExtended_.cols;
     std::vector<WT> weightedSum(size, 0.0);

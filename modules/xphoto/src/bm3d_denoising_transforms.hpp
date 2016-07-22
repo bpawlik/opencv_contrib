@@ -70,9 +70,9 @@ inline static void hardThreshold2D(T *dst, T *thrMap, const int &templateWindowS
 }
 
 template <int N, typename T, typename DT, typename CT>
-inline static short HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap)
+inline static T HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap)
 {
-    short nonZeroCount = 0;
+    T nonZeroCount = 0;
 
     for (int i = 0; i < N; ++i)
         shrink(z[i][n], nonZeroCount, *thrMap++);
@@ -81,9 +81,9 @@ inline static short HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&th
 }
 
 template <typename T, typename DT, typename CT>
-inline static short HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap, const int &N)
+inline static T HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap, const int &N)
 {
-    short nonZeroCount = 0;
+    T nonZeroCount = 0;
 
     for (int i = 0; i < N; ++i)
         shrink(z[i][n], nonZeroCount, *thrMap++);
