@@ -116,7 +116,7 @@ Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     src_(src), basic_(basic), dst_(dst), groupSize_(groupSize), thrMap_(NULL)
 {
     groupSize_ = getLargestPowerOf2SmallerThan(groupSize);
-    CV_Assert(groupSize <= BM3D_MAX_3D_SIZE && groupSize > 0);
+    CV_Assert(groupSize > 0);
 
     halfTemplateWindowSize_ = templateWindowSize >> 1;
     halfSearchWindowSize_ = searchWindowSize >> 1;
@@ -314,9 +314,14 @@ void Bm3dDenoisingInvokerStep2<T, IT, UIT, D, WT, TT>::operator() (const Range& 
                     wienerCoefficients += WienerFiltering<1>(bmSrc, bmBasic, n, thrMapPtr1D);
             }
             break;
-            case 0:
             default:
-                continue;
+                for (int n = 0; n < blockSizeSq; n++)
+                {
+                    ForwardHaarTransformN(bmSrc, n, elementSize);
+                    ForwardHaarTransformN(bmBasic, n, elementSize);
+                    wienerCoefficients += WienerFiltering(bmSrc, bmBasic, n, thrMapPtr1D, elementSize);
+                    InverseHaarTransformN(bmBasic, n, elementSize);
+                }
             }
 
             // Inverse 2D transform

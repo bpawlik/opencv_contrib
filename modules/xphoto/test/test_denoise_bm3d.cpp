@@ -263,6 +263,10 @@ namespace cvtest
                 sumNonZero += HardThreshold<2>(bm, n, thrMapPtr1D);
                 InverseHaarTransform2(bm, n);
                 break;
+            default:
+                ForwardHaarTransformN(bm, n, groupSize);
+                sumNonZero += HardThreshold(bm, n, thrMapPtr1D, groupSize);
+                InverseHaarTransformN(bm, n, groupSize);
             }
         }
 
@@ -285,7 +289,7 @@ namespace cvtest
         const int searchWindowSize = 16;
         const int searchWindowSizeSq = searchWindowSize * searchWindowSize;
         const float h = 10;
-        int maxGroupSize = 16;
+        int maxGroupSize = 64;
 
         // Precompute separate maps for transform and shrinkage verification
         short *thrMapTransform = NULL;
@@ -316,12 +320,16 @@ namespace cvtest
         Test1dTransform<short, int, short>(thrMapTransform, 4, templateWindowSizeSq, bm, bmOrig);
         Test1dTransform<short, int, short>(thrMapTransform, 8, templateWindowSizeSq, bm, bmOrig);
         Test1dTransform<short, int, short>(thrMapTransform, 16, templateWindowSizeSq, bm, bmOrig);
+        Test1dTransform<short, int, short>(thrMapTransform, 32, templateWindowSizeSq, bm, bmOrig);
+        Test1dTransform<short, int, short>(thrMapTransform, 64, templateWindowSizeSq, bm, bmOrig);
 
         // Verify shrinkage
         Test1dTransform<short, int, short>(thrMapShrinkage, 2, templateWindowSizeSq, bm, bmOrig, 6);
         Test1dTransform<short, int, short>(thrMapShrinkage, 4, templateWindowSizeSq, bm, bmOrig, 6);
         Test1dTransform<short, int, short>(thrMapShrinkage, 8, templateWindowSizeSq, bm, bmOrig, 6);
         Test1dTransform<short, int, short>(thrMapShrinkage, 16, templateWindowSizeSq, bm, bmOrig, 6);
+        Test1dTransform<short, int, short>(thrMapShrinkage, 32, templateWindowSizeSq, bm, bmOrig, 6);
+        Test1dTransform<short, int, short>(thrMapShrinkage, 64, templateWindowSizeSq, bm, bmOrig, 14);
     }
 
     const float sqrt2 = std::sqrt(2.0f);

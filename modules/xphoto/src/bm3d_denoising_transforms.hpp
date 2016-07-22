@@ -42,8 +42,6 @@
 #ifndef __OPENCV_BM3D_DENOISING_TRANSFORMS_HPP__
 #define __OPENCV_BM3D_DENOISING_TRANSFORMS_HPP__
 
-#define BM3D_MAX_3D_SIZE 16
-
 namespace cv
 {
 namespace xphoto
@@ -79,12 +77,44 @@ inline static short HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&th
     return nonZeroCount;
 }
 
+template <typename T, typename DT, typename CT>
+inline static short HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap, const int &N)
+{
+    short nonZeroCount = 0;
+
+    for (int i = 0; i < N; ++i)
+        shrink(z[i][n], nonZeroCount, *thrMap++);
+
+    return nonZeroCount;
+}
+
 template <int N, typename T, typename DT, typename CT>
 inline static int WienerFiltering(BlockMatch<T, DT, CT> *zSrc, BlockMatch<T, DT, CT> *zBasic, const int &n, T *&thrMap)
 {
     int wienerCoeffs = 0;
 
     for (int i = 0; i < N; ++i)
+    {
+        // Possible optimization point here to get rid of floats and casts
+        int basicSq = zBasic[i][n] * zBasic[i][n];
+        int sigmaSq = *thrMap * *thrMap;
+        int denom = basicSq + sigmaSq;
+        float wie = (denom == 0) ? 1.0f : ((float)basicSq / (float)denom);
+
+        zBasic[i][n] = (T)(zSrc[i][n] * wie);
+        wienerCoeffs += (int)wie;
+        ++thrMap;
+    }
+
+    return wienerCoeffs;
+}
+
+template <typename T, typename DT, typename CT>
+inline static int WienerFiltering(BlockMatch<T, DT, CT> *zSrc, BlockMatch<T, DT, CT> *zBasic, const int &n, T *&thrMap, const unsigned &N)
+{
+    int wienerCoeffs = 0;
+
+    for (unsigned i = 0; i < N; ++i)
     {
         // Possible optimization point here to get rid of floats and casts
         int basicSq = zBasic[i][n] * zBasic[i][n];
@@ -173,7 +203,7 @@ static void fillHaarCoefficients2D(float *thrCoeff2D, const int &templateWindowS
 // Allocates memory for the output array.
 static void calcHaarThresholdMap1D(float *&thrMap1D, const int &numberOfElements)
 {
-    CV_Assert(numberOfElements <= BM3D_MAX_3D_SIZE && numberOfElements > 0);
+    CV_Assert(numberOfElements > 0);
 
     // Allocate memory for the array
     const int arrSize = (numberOfElements << 1) - 1;
@@ -692,6 +722,56 @@ inline static void ForwardHaarTransform16(BlockMatch<T, DT, CT> *z, const int &n
     z[15][n] = dif7;
 }
 
+static void CalculateIndicesN(unsigned *diffIndices, const unsigned &size, const unsigned &N)
+{
+    unsigned diffIdx = 1;
+    unsigned diffAllIdx = 0;
+    for (unsigned i = 1; i <= N; i <<= 1)
+    {
+        diffAllIdx += (i >> 1);
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            diffIndices[diffIdx++] = size - (--diffAllIdx);
+        diffAllIdx += i;
+    }
+}
+
+template <typename T, typename DT, typename CT>
+inline static void ForwardHaarTransformN(BlockMatch<T, DT, CT> *src, const int &n, const unsigned &N)
+{
+    const unsigned size = N + (N << 1) - 2;
+    T *dstX = new T[size];
+
+    // Fill dstX with source values
+    for (unsigned i = 0; i < N; ++i)
+        dstX[i] = src[i][n];
+
+    unsigned idx = 0, dstIdx = N;
+    for (unsigned i = N; i > 1; i >>= 1)
+    {
+        // Get sums
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = (dstX[idx + 2 * j] + dstX[idx + j * 2 + 1] + 1) >> 1;
+
+        // Get diffs
+        for (unsigned j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = dstX[idx + 2 * j] - dstX[idx + j * 2 + 1];
+
+        idx = dstIdx - i;
+    }
+
+    // Calculate indices in the destination matrix.
+    unsigned *diffIndices = new unsigned[N];
+    CalculateIndicesN(diffIndices, size, N);
+
+    // Fill in destination matrix
+    src[0][n] = dstX[size - 2];
+    for (unsigned i = 1; i < N; ++i)
+        src[i][n] = dstX[diffIndices[i]];
+
+    delete[] dstX;
+    delete[] diffIndices;
+}
+
 /// Functions for inverse 1D transforms
 
 template <typename T, typename DT, typename CT>
@@ -804,6 +884,45 @@ inline static void InverseHaarTransform16(BlockMatch<T, DT, CT> *src, const int 
     src[13][n] = (sum333 - src14) >> 1;
     src[14][n] = (dif333 + src15) >> 1;
     src[15][n] = (dif333 - src15) >> 1;
+}
+
+template <typename T, typename DT, typename CT>
+inline static void InverseHaarTransformN(BlockMatch<T, DT, CT> *src, const int &n, const unsigned &N)
+{
+    const unsigned dstSize = (N << 1) - 2;
+    T *dstX = new T[dstSize];
+    T *srcX = new T[N];
+
+    // Fill srcX with source values
+    srcX[0] = src[0][n] * 2;
+    for (unsigned i = 1; i < N; ++i)
+        srcX[i] = src[i][n];
+
+    // Take care of first two elements
+    dstX[0] = srcX[0] + srcX[1];
+    dstX[1] = srcX[0] - srcX[1];
+
+    unsigned idx = 0, dstIdx = 2;
+    for (unsigned i = 4; i < N; i <<= 1)
+    {
+        for (unsigned j = 0; j < (i >> 1); ++j)
+        {
+            dstX[dstIdx++] = dstX[idx + j] + srcX[idx + 2 + j];
+            dstX[dstIdx++] = dstX[idx + j] - srcX[idx + 2 + j];
+        }
+        idx += (i >> 1);
+    }
+
+    // Handle the last X elements
+    dstIdx = 0;
+    for (unsigned j = 0; j < (N >> 1); ++j)
+    {
+        src[dstIdx++][n] = (dstX[idx + j] + srcX[idx + 2 + j]) >> 1;
+        src[dstIdx++][n] = (dstX[idx + j] - srcX[idx + 2 + j]) >> 1;
+    }
+
+    delete[] srcX;
+    delete[] dstX;
 }
 
 }  // namespace xphoto
