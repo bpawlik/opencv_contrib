@@ -96,6 +96,7 @@ namespace cv
         i.e. maximum distance for which two blocks are considered similar.
         Value expressed in euclidean distance.
         @param groupSize Maximum size of the 3D group for collaborative filtering.
+        @param slidingStep Sliding step to process every next reference block.
         @param normType Norm used to calculate distance between blocks. L2 is slower than L1
         but yields more accurate results.
         @param step Step of BM3D to be executed. Possible variants are: step 1, step 2, both steps.
@@ -118,6 +119,7 @@ namespace cv
             int blockMatchingStep1 = 2500,
             int blockMatchingStep2 = 400,
             int groupSize = 8,
+            int slidingStep = 1,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
             int transformType = cv::xphoto::HAAR);
@@ -142,6 +144,7 @@ namespace cv
         i.e. maximum distance for which two blocks are considered similar.
         Value expressed in euclidean distance.
         @param groupSize Maximum size of the 3D group for collaborative filtering.
+        @param slidingStep Sliding step to process every next reference block.
         @param normType Norm used to calculate distance between blocks. L2 is slower than L1
         but yields more accurate results.
         @param step Step of BM3D to be executed. Allowed are only BM3D_STEP1 and BM3D_STEPALL.
@@ -164,6 +167,7 @@ namespace cv
             int blockMatchingStep1 = 2500,
             int blockMatchingStep2 = 400,
             int groupSize = 8,
+            int slidingStep = 1,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
             int transformType = cv::xphoto::HAAR);

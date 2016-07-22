@@ -63,7 +63,8 @@ public:
         const int &searchWindowSize,
         const float &h,
         const int &hBM,
-        const int &groupSize);
+        const int &groupSize,
+        const int &slidingStep);
 
     virtual ~Bm3dDenoisingInvokerStep1();
     void operator() (const Range& range) const;
@@ -92,6 +93,9 @@ private:
     // Maximum size of 3D group
     int groupSize_;
 
+    // Sliding step
+    const int slidingStep_;
+
     // Function pointers
     void(*haarTransform2D)(const T *ptr, TT *dst, const int &step);
     void(*inverseHaar2D)(TT *src);
@@ -108,12 +112,12 @@ Bm3dDenoisingInvokerStep1<T, IT, UIT, D, WT, TT>::Bm3dDenoisingInvokerStep1(
     const int &searchWindowSize,
     const float &h,
     const int &hBM,
-    const int &groupSize) :
-    src_(src), dst_(dst), groupSize_(groupSize), thrMap_(NULL)
+    const int &groupSize,
+    const int &slidingStep) :
+    src_(src), dst_(dst), groupSize_(groupSize), slidingStep_(slidingStep), thrMap_(NULL)
 {
     groupSize_ = getLargestPowerOf2SmallerThan(groupSize);
     CV_Assert(groupSize > 0);
-    CV_Assert(searchWindowSize > templateWindowSize);
 
     halfTemplateWindowSize_ = templateWindowSize >> 1;
     halfSearchWindowSize_ = searchWindowSize >> 1;
@@ -206,9 +210,9 @@ void Bm3dDenoisingInvokerStep1<T, IT, UIT, D, WT, TT>::operator() (const Range& 
     // First element in a group is always the reference patch. Hence distance is 0.
     bm[0](0, halfSearchWindowSize, halfSearchWindowSize);
 
-    for (int j = row_from, jj = 0; j <= row_to; ++j, ++jj)
+    for (int j = row_from, jj = 0; j <= row_to; j += slidingStep_, jj += slidingStep_)
     {
-        for (int i = 0; i < src_.cols; ++i)
+        for (int i = 0; i < src_.cols; i += slidingStep_)
         {
             const T *referencePatch = srcExtended_.ptr<T>(0) + step*(halfSearchWindowSize + j) + (halfSearchWindowSize + i);
             const T *currentPixel = srcExtended_.ptr<T>(0) + step*j + i;

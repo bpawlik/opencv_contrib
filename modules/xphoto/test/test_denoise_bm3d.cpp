@@ -74,8 +74,8 @@ namespace cvtest
 
         // BM3D: two different calls doing exactly the same thing
         cv::Mat result, resultSec;
-        cv::xphoto::bm3dDenoising(original, cv::Mat(), resultSec, 10, 4, 16, 2500, 400, 8, cv::NORM_L2, cv::xphoto::BM3D_STEPALL);
-        cv::xphoto::bm3dDenoising(original, result, 10, 4, 16, 2500, 400, 8, cv::NORM_L2, cv::xphoto::BM3D_STEPALL);
+        cv::xphoto::bm3dDenoising(original, cv::Mat(), resultSec, 10, 4, 16, 2500, 400, 8, 1, cv::NORM_L2, cv::xphoto::BM3D_STEPALL);
+        cv::xphoto::bm3dDenoising(original, result, 10, 4, 16, 2500, 400, 8, 1, cv::NORM_L2, cv::xphoto::BM3D_STEPALL);
 
         DUMP(result, expected_path + ".res.png");
 
@@ -101,12 +101,12 @@ namespace cvtest
         cv::Mat basic, result;
 
         // BM3D step 1
-        cv::xphoto::bm3dDenoising(original, basic, 10, 4, 16, 2500, -1, 8, cv::NORM_L2, cv::xphoto::BM3D_STEP1);
+        cv::xphoto::bm3dDenoising(original, basic, 10, 4, 16, 2500, -1, 8, 1, cv::NORM_L2, cv::xphoto::BM3D_STEP1);
         ASSERT_LT(cvtest::norm(basic, expected_basic, cv::NORM_L2), 200);
         DUMP(basic, expected_basic_path + ".res.basic.png");
 
         // BM3D step 2
-        cv::xphoto::bm3dDenoising(original, basic, result, 10, 4, 16, 2500, 400, 8, cv::NORM_L2, cv::xphoto::BM3D_STEP2);
+        cv::xphoto::bm3dDenoising(original, basic, result, 10, 4, 16, 2500, 400, 8, 1, cv::NORM_L2, cv::xphoto::BM3D_STEP2);
         ASSERT_LT(cvtest::norm(basic, expected_basic, cv::NORM_L2), 200);
         DUMP(basic, expected_basic_path + ".res.basic2.png");
 
@@ -128,7 +128,7 @@ namespace cvtest
         ASSERT_FALSE(expected.empty()) << "Could not load reference image " << expected_path;
 
         cv::Mat result;
-        cv::xphoto::bm3dDenoising(original, result, 10, 4, 16, 2500, -1, 8, cv::NORM_L1, cv::xphoto::BM3D_STEP1);
+        cv::xphoto::bm3dDenoising(original, result, 10, 4, 16, 2500, -1, 8, 1, cv::NORM_L1, cv::xphoto::BM3D_STEP1);
 
         DUMP(result, expected_path + ".res.png");
 
@@ -148,7 +148,7 @@ namespace cvtest
         ASSERT_FALSE(expected.empty()) << "Could not load reference image " << expected_path;
 
         cv::Mat result;
-        cv::xphoto::bm3dDenoising(original, result, 10, 8, 16, 2500, -1, 8, cv::NORM_L2, cv::xphoto::BM3D_STEP1);
+        cv::xphoto::bm3dDenoising(original, result, 10, 8, 16, 2500, -1, 8, 1, cv::NORM_L2, cv::xphoto::BM3D_STEP1);
 
         DUMP(result, expected_path + ".res.png");
 
