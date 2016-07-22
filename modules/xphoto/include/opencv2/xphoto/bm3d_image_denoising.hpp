@@ -57,11 +57,23 @@ namespace cv
         //! @addtogroup xphoto
         //! @{
 
-        // BM3D transform types
-        enum { BM3D_HAAR = 0 };
+        //! BM3D transform types
+        enum TransformTypes
+        {
+            /** Un-normalized Haar transform */
+            HAAR = 0
+        };
 
-        // BM3D steps
-        enum { BM3D_STEPALL = 0, BM3D_STEP1 = 1, BM3D_STEP2 = 2 };
+        //! BM3D algorithm steps
+        enum Bm3dSteps
+        {
+            /** Execute all steps of the algorithm */
+            BM3D_STEPALL = 0,
+            /** Execute only first step of the algorithm */
+            BM3D_STEP1 = 1,
+            /** Execute only second step of the algorithm */
+            BM3D_STEP2 = 2
+        };
 
         /** @brief Performs image denoising using the Block-Matching and 3D-filtering algorithm
         <http://www.cs.tut.fi/~foi/GCF-BM3D/BM3D_TIP_2007.pdf> with several computational
@@ -108,7 +120,7 @@ namespace cv
             int groupSize = 8,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
-            int transformType = cv::xphoto::BM3D_HAAR);
+            int transformType = cv::xphoto::HAAR);
 
         /** @brief Performs image denoising using the Block-Matching and 3D-filtering algorithm
         <http://www.cs.tut.fi/~foi/GCF-BM3D/BM3D_TIP_2007.pdf> with several computational
@@ -154,7 +166,7 @@ namespace cv
             int groupSize = 8,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
-            int transformType = cv::xphoto::BM3D_HAAR);
+            int transformType = cv::xphoto::HAAR);
         //! @}
     }
 }

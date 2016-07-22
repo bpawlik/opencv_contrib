@@ -105,7 +105,7 @@ void bm3dDenoising(
 {
     int type = _src.type(), depth = CV_MAT_DEPTH(type), cn = CV_MAT_CN(type);
     CV_Assert(1 == cn);
-    CV_Assert(BM3D_HAAR == transformType);
+    CV_Assert(HAAR == transformType);
 
     Size srcSize = _src.size();
 
