@@ -43,8 +43,8 @@
 #include "test_precomp.hpp"
 #include <string>
 
-//#define DUMP_RESULTS
-//#define TEST_TRANSFORMS
+#define DUMP_RESULTS
+#define TEST_TRANSFORMS
 
 #ifdef TEST_TRANSFORMS
 #include "..\..\xphoto\src\bm3d_denoising_invoker_commons.hpp"

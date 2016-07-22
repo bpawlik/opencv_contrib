@@ -65,7 +65,7 @@ static void bm3dDenoising_(
     const int &slidingStep,
     const int &step)
 {
-    double granularity = (double)std::max(1., (double)src.total() / (1 << 16));
+    double granularity = 1;// (double)std::max(1., (double)src.total() / (1 << 16));
 
     switch (CV_MAT_CN(src.type())) {
     case 1:
