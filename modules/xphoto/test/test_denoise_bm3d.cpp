@@ -132,7 +132,7 @@ namespace cvtest
 
         DUMP(result, expected_path + ".res.png");
 
-        ASSERT_LT(cvtest::norm(result, expected, cv::NORM_L2), 200);
+        ASSERT_LT(cvtest::norm(result, expected, cv::NORM_L2), 1);
     }
 
     TEST(xphoto_DenoisingBm3dGrayscale, regression_L2_8x8)
