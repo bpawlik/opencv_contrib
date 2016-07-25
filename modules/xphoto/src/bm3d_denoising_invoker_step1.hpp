@@ -491,7 +491,6 @@ inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForAllElementsI
 {
     const int hBM = hBM_;
     const int blockSize = templateWindowSize_;
-    const int halfBlockSize = halfTemplateWindowSize_;
     const int searchWindowSize = searchWindowSize_;
     const TT halfSearchWindowSize = (TT)halfSearchWindowSize_;
 
