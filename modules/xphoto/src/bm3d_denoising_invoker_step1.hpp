@@ -72,6 +72,24 @@ public:
 private:
     void operator= (const Bm3dDenoisingInvokerStep1&);
 
+    void calcDistSumsForFirstElementInRow(
+        int i,
+        Array2d<int>& distSums,
+        Array3d<int>& colDistSums,
+        Array3d<int>& lastColDistSums,
+        BlockMatch<TT, int, TT> *bm,
+        int &elementSize) const;
+
+    void calcDistSumsForAllElementsInFirstRow(
+        int i,
+        int j,
+        int firstColNum,
+        Array2d<int>& distSums,
+        Array3d<int>& colDistSums,
+        Array3d<int>& lastColDistSums,
+        BlockMatch<TT, int, TT> *bm,
+        int &elementSize) const;
+
     const Mat& src_;
     Mat& dst_;
     Mat srcExtended_;
@@ -122,7 +140,7 @@ Bm3dDenoisingInvokerStep1<T, D, WT, TT>::Bm3dDenoisingInvokerStep1(
     halfTemplateWindowSize_ = templateWindowSize >> 1;
     halfSearchWindowSize_ = searchWindowSize >> 1;
     templateWindowSize_ = halfTemplateWindowSize_ << 1;
-    searchWindowSize_ = (halfSearchWindowSize_ << 1);
+    searchWindowSize_ = searchWindowSize;
     templateWindowSizeSq_ = templateWindowSize_ * templateWindowSize_;
     searchWindowSizeSq_ = searchWindowSize_ * searchWindowSize_;
 
@@ -195,8 +213,6 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
     const int groupSize = groupSize_;
 
     const int step = srcExtended_.cols;
-    const int cstep = step - templateWindowSize_;
-
     const int dstStep = srcExtended_.cols;
     const int weiStep = srcExtended_.cols;
     const int dstcstep = dstStep - blockSize;
@@ -210,38 +226,80 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
     // First element in a group is always the reference patch. Hence distance is 0.
     bm[0](0, halfSearchWindowSize, halfSearchWindowSize);
 
+    // Sums of columns and rows for current pixel
+    Array2d<int> distSums(searchWindowSize, searchWindowSize);
+
+    // Sums of columns for current pixel (for lazy calc optimization)
+    Array3d<int> colDistSums(blockSize, searchWindowSize, searchWindowSize);
+
+    // Last elements of column sum (for each element in a row)
+    Array3d<int> lastColDistSums(src_.cols, searchWindowSize, searchWindowSize);
+
+    int firstColNum = -1;
     for (int j = row_from, jj = 0; j <= row_to; j += slidingStep_, jj += slidingStep_)
     {
         for (int i = 0; i < src_.cols; i += slidingStep_)
         {
-            const T *referencePatch = srcExtended_.ptr<T>(0) + step*(halfSearchWindowSize + j) + (halfSearchWindowSize + i);
             const T *currentPixel = srcExtended_.ptr<T>(0) + step*j + i;
-
             int elementSize = 1;
-            for (short l = 0; l < searchWindowSize; ++l)
+
+            // Calculate distSums using moving average filter approach.
+            if (i == 0)
             {
-                const T *candidatePatch = currentPixel + step*l;
-                for (short k = 0; k < searchWindowSize; ++k)
+                // Calculate distSums for the first element in a row
+                calcDistSumsForFirstElementInRow(j, distSums, colDistSums, lastColDistSums, bm, elementSize);
+                firstColNum = 0;
+            }
+            else
+            {
+                if (j == row_from)
                 {
-                    if (l == halfSearchWindowSize && k == halfSearchWindowSize)
-                        continue;
-
-                    // Calc distance
-                    int e = 0;
-                    const T *canPtr = candidatePatch + k;
-                    const T *refPtr = referencePatch;
-                    for (int n = 0; n < blockSize; ++n)
-                    {
-                        for (int m = 0; m < blockSize; ++m)
-                            e += D::template calcDist<TT>(*canPtr++, *refPtr++);
-                        canPtr += cstep;
-                        refPtr += cstep;
-                    }
-
-                    // Save the distance, coordinate and increase the counter
-                    if (e < hBM)
-                        bm[elementSize++](e, k, l);
+                    // Calculate distSums for all elements in the first row
+                    calcDistSumsForAllElementsInFirstRow(
+                        j, i, firstColNum, distSums, colDistSums, lastColDistSums, bm, elementSize);
                 }
+                else
+                {
+                    const int start_bx = blockSize + i - 1;
+                    const int start_by = j - 1;
+                    const int ax = halfSearchWindowSize + start_bx;
+                    const int ay = halfSearchWindowSize + start_by;
+
+                    const T a_up = srcExtended_.at<T>(ay, ax);
+                    const T a_down = srcExtended_.at<T>(ay + blockSize, ax);
+
+                    for (TT y = 0; y < searchWindowSize; y++)
+                    {
+                        int *distSumsRow = distSums.row_ptr(y);
+                        int *colDistSumsRow = colDistSums.row_ptr(firstColNum, y);
+                        int *lastColDistSumsRow = lastColDistSums.row_ptr(i, y);
+
+                        const T *b_up_ptr = srcExtended_.ptr<T>(start_by + y);
+                        const T *b_down_ptr = srcExtended_.ptr<T>(start_by + y + blockSize);
+
+                        for (TT x = 0; x < searchWindowSize; x++)
+                        {
+                            // Remove from current pixel sum column sum with index "firstColNum"
+                            distSumsRow[x] -= colDistSumsRow[x];
+
+                            const int bx = start_bx + x;
+                            colDistSumsRow[x] = lastColDistSumsRow[x] +
+                                D::template calcUpDownDist<T>(a_up, a_down, b_up_ptr[bx], b_down_ptr[bx]);
+
+                            distSumsRow[x] += colDistSumsRow[x];
+                            lastColDistSumsRow[x] = colDistSumsRow[x];
+
+                            if (x == halfSearchWindowSize && y == halfSearchWindowSize)
+                                continue;
+
+                            // Save the distance, coordinate and increase the counter
+                            if (distSumsRow[x] < hBM)
+                                bm[elementSize++](distSumsRow[x], x, y);
+                        }
+                    }
+                }
+
+                firstColNum = (firstColNum + 1) % blockSize;
             }
 
             // Sort bm by distance (first element is already sorted)
@@ -362,6 +420,112 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
         float *dw = weights.data() + (ii + halfSearchWindowSize + halfBlockSize) * dstStep + halfSearchWindowSize;
         for (int j = 0; j < dst_.cols; ++j)
             d[j] = cv::saturate_cast<T>(dE[j + halfBlockSize] / dw[j + halfBlockSize]);
+    }
+}
+
+
+template <typename T, typename D, typename WT, typename TT>
+inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForFirstElementInRow(
+    int i,
+    Array2d<int>& distSums,
+    Array3d<int>& colDistSums,
+    Array3d<int>& lastColDistSums,
+    BlockMatch<TT, int, TT> *bm,
+    int &elementSize) const
+{
+    int j = 0;
+    const int hBM = hBM_;
+    const int blockSize = templateWindowSize_;
+    const int searchWindowSize = searchWindowSize_;
+    const TT halfSearchWindowSize = (TT)halfSearchWindowSize_;
+    const int ay = halfSearchWindowSize + i;
+    const int ax = halfSearchWindowSize + j;
+
+    for (TT y = 0; y < searchWindowSize; ++y)
+    {
+        for (TT x = 0; x < searchWindowSize; ++x)
+        {
+            // Zeroize arrays
+            distSums[y][x] = 0;
+            for (int tx = 0; tx < blockSize; tx++)
+                colDistSums[tx][y][x] = 0;
+
+            int start_y = i + y;
+            int start_x = j + x;
+
+            for (int ty = 0; ty < blockSize; ty++)
+                for (int tx = 0; tx < blockSize; tx++)
+                {
+                    int dist = D::template calcDist<T>(
+                        srcExtended_,
+                        ay + ty,
+                        ax + tx,
+                        start_y + ty,
+                        start_x + tx);
+
+                    distSums[y][x] += dist;
+                    colDistSums[tx][y][x] += dist;
+                }
+
+            lastColDistSums[j][y][x] = colDistSums[blockSize - 1][y][x];
+
+            if (x == halfSearchWindowSize && y == halfSearchWindowSize)
+                continue;
+
+            if (distSums[y][x] < hBM)
+                bm[elementSize++](distSums[y][x], x, y);
+        }
+    }
+}
+
+template <typename T, typename D, typename WT, typename TT>
+inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForAllElementsInFirstRow(
+    int i,
+    int j,
+    int firstColNum,
+    Array2d<int>& distSums,
+    Array3d<int>& colDistSums,
+    Array3d<int>& lastColDistSums,
+    BlockMatch<TT, int, TT> *bm,
+    int &elementSize) const
+{
+    const int hBM = hBM_;
+    const int blockSize = templateWindowSize_;
+    const int halfBlockSize = halfTemplateWindowSize_;
+    const int searchWindowSize = searchWindowSize_;
+    const TT halfSearchWindowSize = (TT)halfSearchWindowSize_;
+
+    const int bx_start = blockSize - 1 + j;
+    const int ax = halfSearchWindowSize + bx_start;
+    const int ay = halfSearchWindowSize + i;
+
+    for (TT y = 0; y < searchWindowSize; ++y)
+    {
+        for (TT x = 0; x < searchWindowSize; ++x)
+        {
+            distSums[y][x] -= colDistSums[firstColNum][y][x];
+
+            colDistSums[firstColNum][y][x] = 0;
+            int by = i + y;
+            int bx = bx_start + x;
+
+            for (int ty = 0; ty < blockSize; ty++)
+                colDistSums[firstColNum][y][x] += D::template calcDist<T>(
+                    srcExtended_,
+                    ay + ty,
+                    ax,
+                    by + ty,
+                    bx);
+
+            distSums[y][x] += colDistSums[firstColNum][y][x];
+            lastColDistSums[j][y][x] = colDistSums[firstColNum][y][x];
+
+            if (x == halfSearchWindowSize && y == halfSearchWindowSize)
+                continue;
+
+            if (distSums[y][x] < hBM)
+                bm[elementSize++](distSums[y][x], x, y);
+        }
     }
 }
 
