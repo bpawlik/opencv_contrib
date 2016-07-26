@@ -423,7 +423,6 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
     }
 }
 
-
 template <typename T, typename D, typename WT, typename TT>
 inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForFirstElementInRow(
     int i,
