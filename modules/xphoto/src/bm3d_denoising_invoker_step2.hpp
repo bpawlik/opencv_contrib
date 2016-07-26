@@ -71,6 +71,7 @@ public:
     void operator() (const Range& range) const;
 
 private:
+    // Unimplemented operator in order to satisfy compiler warning.
     void operator= (const Bm3dDenoisingInvokerStep2&);
 
     void calcDistSumsForFirstElementInRow(
@@ -91,20 +92,25 @@ private:
         BlockMatch<TT, int, TT> *bm,
         int &elementSize) const;
 
+    // Image containers
     const Mat& src_;
     const Mat& basic_;
     Mat& dst_;
     Mat srcExtended_;
     Mat basicExtended_;
 
+    // Border size of the extended src and basic images
     int borderSize_;
 
+    // Template and window size
     int templateWindowSize_;
     int searchWindowSize_;
 
+    // Half template and window size
     int halfTemplateWindowSize_;
     int halfSearchWindowSize_;
 
+    // Squared template and window size
     int templateWindowSizeSq_;
     int searchWindowSizeSq_;
 
@@ -213,12 +219,11 @@ void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) co
     const int halfBlockSize = halfTemplateWindowSize_;
     const int searchWindowSize = searchWindowSize_;
     const int searchWindowSizeSq = searchWindowSizeSq_;
-    const short halfSearchWindowSize = (short)halfSearchWindowSize_;
+    const TT halfSearchWindowSize = (TT)halfSearchWindowSize_;
     const int hBM = hBM_;
     const int groupSize = groupSize_;
 
     const int step = srcExtended_.cols;
-    const int cstep = step - templateWindowSize_;
     const int dstStep = srcExtended_.cols;
     const int weiStep = srcExtended_.cols;
     const int dstcstep = dstStep - blockSize;
