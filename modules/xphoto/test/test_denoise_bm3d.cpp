@@ -171,12 +171,12 @@ namespace cvtest
             src[i] = (i % 10) * 10;
 
         // Use tailored transforms
-        Haar8x8(src, dst, templateWindowSize);
-        InvHaar8x8(dst);
+        Haar8x8(src, dst, templateWindowSize, templateWindowSize);
+        InvHaar8x8(dst, templateWindowSize);
 
         // Use generic transforms
-        ForwardHaarXxX<uchar, short, templateWindowSize>(src, dstSec, templateWindowSize);
-        InvHaarXxX<short, templateWindowSize>(dstSec);
+        ForwardHaarXxX<uchar, short, templateWindowSize>(src, dstSec, templateWindowSize, templateWindowSize);
+        InvHaarXxX<short, templateWindowSize>(dstSec, templateWindowSize);
 
         for (unsigned i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(dst[i], dstSec[i]);
@@ -196,8 +196,8 @@ namespace cvtest
             src[i] = i;
         }
 
-        Haar4x4(src, dst, templateWindowSize);
-        InvHaar4x4(dst);
+        Haar4x4(src, dst, templateWindowSize, templateWindowSize);
+        InvHaar4x4(dst, templateWindowSize);
 
         for (uchar i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(static_cast<short>(src[i]), dst[i]);
@@ -217,8 +217,8 @@ namespace cvtest
             src[i] = i;
         }
 
-        Haar8x8(src, dst, templateWindowSize);
-        InvHaar8x8(dst);
+        Haar8x8(src, dst, templateWindowSize, templateWindowSize);
+        InvHaar8x8(dst, templateWindowSize);
 
         for (uchar i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(static_cast<short>(src[i]), dst[i]);
