@@ -42,10 +42,9 @@
 #ifndef __OPENCV_BM3D_DENOISING_INVOKER_STEP2_HPP__
 #define __OPENCV_BM3D_DENOISING_INVOKER_STEP2_HPP__
 
-#include <limits>
-
 #include "bm3d_denoising_invoker_commons.hpp"
 #include "bm3d_denoising_transforms.hpp"
+#include "kaiser_window.hpp"
 
 namespace cv
 {
@@ -65,7 +64,8 @@ public:
         const float &h,
         const int &hBM,
         const int &groupSize,
-        const int &slidingStep);
+        const int &slidingStep,
+        const float &beta);
 
     virtual ~Bm3dDenoisingInvokerStep2();
     void operator() (const Range& range) const;
@@ -129,6 +129,9 @@ private:
 
     // Threshold map
     TT *thrMap_;
+
+    // Kaiser window
+    float *kaiser_;
 };
 
 template <typename T, typename D, typename WT, typename TT>
@@ -141,8 +144,9 @@ Bm3dDenoisingInvokerStep2<T, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     const float &h,
     const int &hBM,
     const int &groupSize,
-    const int &slidingStep) :
-    src_(src), basic_(basic), dst_(dst), groupSize_(groupSize), slidingStep_(slidingStep), thrMap_(NULL)
+    const int &slidingStep,
+    const float &beta) :
+    src_(src), basic_(basic), dst_(dst), groupSize_(groupSize), slidingStep_(slidingStep), thrMap_(NULL), kaiser_(NULL)
 {
     groupSize_ = getLargestPowerOf2SmallerThan(groupSize);
     CV_Assert(groupSize > 0);
@@ -200,12 +204,16 @@ Bm3dDenoisingInvokerStep2<T, D, WT, TT>::Bm3dDenoisingInvokerStep2(
 
     // Precompute threshold map
     calcHaarThresholdMap3D(thrMap_, h, templateWindowSize_, groupSize_);
+
+    // Generate kaiser window
+    calcKaiserWindow2D(kaiser_, templateWindowSize_, beta);
 }
 
 template<typename T, typename D, typename WT, typename TT>
 inline Bm3dDenoisingInvokerStep2<T, D, WT, TT>::~Bm3dDenoisingInvokerStep2()
 {
     delete[] thrMap_;
+    delete[] kaiser_;
 }
 
 template <typename T, typename D, typename WT, typename TT>
@@ -412,6 +420,7 @@ void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) co
             // Put patches back to their original positions
             WT *dstPtr = weightedSum.data() + jj * dstStep + i;
             WT *weiPtr = weights.data() + jj * dstStep + i;
+            const float *kaiser = kaiser_;
 
             for (int l = 0; l < elementSize; ++l)
             {
@@ -424,8 +433,9 @@ void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) co
                 {
                     for (int m = 0; m < blockSize; ++m)
                     {
-                        *d += block[n * blockSize + m] * weight;
-                        *dw += weight;
+                        unsigned idx = n * blockSize + m;
+                        *d += kaiser[idx] * block[idx] * weight;
+                        *dw += kaiser[idx] * weight;
                         ++d, ++dw;
                     }
                     d += dstcstep;

@@ -63,6 +63,7 @@ static void bm3dDenoising_(
     const int &hBMStep2,
     const int &groupSize,
     const int &slidingStep,
+    const float &beta,
     const int &step)
 {
     double granularity = (double)std::max(1., (double)src.total() / (1 << 16));
@@ -73,14 +74,31 @@ static void bm3dDenoising_(
         {
             parallel_for_(cv::Range(0, src.rows),
                 Bm3dDenoisingInvokerStep1<ST, D, float, TT>(
-                    src, basic, templateWindowSize, searchWindowSize, h, hBMStep1, groupSize, slidingStep),
+                    src,
+                    basic,
+                    templateWindowSize,
+                    searchWindowSize,
+                    h,
+                    hBMStep1,
+                    groupSize,
+                    slidingStep,
+                    beta),
                 granularity);
         }
         if (step == BM3D_STEP2 || step == BM3D_STEPALL)
         {
             parallel_for_(cv::Range(0, src.rows),
                 Bm3dDenoisingInvokerStep2<ST, D, float, TT>(
-                    src, basic, dst, templateWindowSize, searchWindowSize, h, hBMStep2, groupSize, slidingStep),
+                    src,
+                    basic,
+                    dst,
+                    templateWindowSize,
+                    searchWindowSize,
+                    h,
+                    hBMStep2,
+                    groupSize,
+                    slidingStep,
+                    beta),
                 granularity);
         }
         break;
@@ -101,6 +119,7 @@ void bm3dDenoising(
     int blockMatchingStep2,
     int groupSize,
     int slidingStep,
+    float beta,
     int normType,
     int step,
     int transformType)
@@ -148,6 +167,7 @@ void bm3dDenoising(
                 blockMatchingStep2,
                 groupSize,
                 slidingStep,
+                beta,
                 step);
             break;
         default:
@@ -169,6 +189,7 @@ void bm3dDenoising(
                 blockMatchingStep2,
                 groupSize,
                 slidingStep,
+                beta,
                 step);
             break;
         case CV_16U:
@@ -183,6 +204,7 @@ void bm3dDenoising(
                 blockMatchingStep2,
                 groupSize,
                 slidingStep,
+                beta,
                 step);
             break;
         default:
@@ -206,6 +228,7 @@ void bm3dDenoising(
     int blockMatchingStep2,
     int groupSize,
     int slidingStep,
+    float beta,
     int normType,
     int step,
     int transformType)
@@ -227,6 +250,7 @@ void bm3dDenoising(
         blockMatchingStep2,
         groupSize,
         slidingStep,
+        beta,
         normType,
         step,
         transformType);

@@ -85,7 +85,7 @@ namespace cv
         @param h Parameter regulating filter strength. Big h value perfectly removes noise but also
         removes image details, smaller h value preserves details but also preserves some noise.
         @param templateWindowSize Size in pixels of the template patch that is used for block-matching.
-        Should be power of 2. Maximum supported value is 64.
+        Should be power of 2.
         @param searchWindowSize Size in pixels of the window that is used to perform block-matching.
         Affect performance linearly: greater searchWindowsSize - greater denoising time.
         Must be larger than templateWindowSize.
@@ -97,6 +97,9 @@ namespace cv
         Value expressed in euclidean distance.
         @param groupSize Maximum size of the 3D group for collaborative filtering.
         @param slidingStep Sliding step to process every next reference block.
+        @param beta Kaiser window parameter that affects the sidelobe attenuation of the transform of the
+        window. Kaiser window is used in order to reduce border effects. To prevent usage of the window,
+        set beta to zero.
         @param normType Norm used to calculate distance between blocks. L2 is slower than L1
         but yields more accurate results.
         @param step Step of BM3D to be executed. Possible variants are: step 1, step 2, both steps.
@@ -120,6 +123,7 @@ namespace cv
             int blockMatchingStep2 = 400,
             int groupSize = 8,
             int slidingStep = 1,
+            float beta = 2.0f,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
             int transformType = cv::xphoto::HAAR);
@@ -133,7 +137,7 @@ namespace cv
         @param h Parameter regulating filter strength. Big h value perfectly removes noise but also
         removes image details, smaller h value preserves details but also preserves some noise.
         @param templateWindowSize Size in pixels of the template patch that is used for block-matching.
-        Should be power of 2. Maximum supported value is 64.
+        Should be power of 2.
         @param searchWindowSize Size in pixels of the window that is used to perform block-matching.
         Affect performance linearly: greater searchWindowsSize - greater denoising time.
         Must be larger than templateWindowSize.
@@ -145,6 +149,9 @@ namespace cv
         Value expressed in euclidean distance.
         @param groupSize Maximum size of the 3D group for collaborative filtering.
         @param slidingStep Sliding step to process every next reference block.
+        @param beta Kaiser window parameter that affects the sidelobe attenuation of the transform of the
+        window. Kaiser window is used in order to reduce border effects. To prevent usage of the window,
+        set beta to zero.
         @param normType Norm used to calculate distance between blocks. L2 is slower than L1
         but yields more accurate results.
         @param step Step of BM3D to be executed. Allowed are only BM3D_STEP1 and BM3D_STEPALL.
@@ -168,6 +175,7 @@ namespace cv
             int blockMatchingStep2 = 400,
             int groupSize = 8,
             int slidingStep = 1,
+            float beta = 2.0f,
             int normType = cv::NORM_L2,
             int step = cv::xphoto::BM3D_STEPALL,
             int transformType = cv::xphoto::HAAR);
