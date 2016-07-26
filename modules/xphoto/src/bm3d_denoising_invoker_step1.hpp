@@ -42,8 +42,6 @@
 #ifndef __OPENCV_BM3D_DENOISING_INVOKER_STEP1_HPP__
 #define __OPENCV_BM3D_DENOISING_INVOKER_STEP1_HPP__
 
-#include <limits>
-
 #include "bm3d_denoising_invoker_commons.hpp"
 #include "bm3d_denoising_transforms.hpp"
 
