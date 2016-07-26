@@ -98,7 +98,7 @@ inline static void ForwardHaarTransformX(const T *src, TT *dst, const int &step)
 }
 
 template <typename T, typename TT, int X>
-inline static void ForwardHaarXxX(const T *ptr, TT *dst, const int &step)
+inline static void ForwardHaarXxX(const T *ptr, TT *dst, const int &step, const int /*blockSize*/)
 {
     TT temp[X * X];
 
@@ -148,7 +148,7 @@ inline static void InvHaarTransformX(T *src, T *dst)
 }
 
 template <typename T, int X>
-inline static void InvHaarXxX(T *src)
+inline static void InvHaarXxX(T *src, const int /*blockSize*/)
 {
     T temp[X * X];
 
@@ -159,6 +159,130 @@ inline static void InvHaarXxX(T *src)
     // Then invert rows
     for (int i = 0; i < X; ++i)
         InvHaarTransformX<T, X, 1>(temp + i * X, src + i * X);
+}
+
+// Same as above but X and N are arguments, not template parameters.
+
+static void CalculateIndices(int *diffIndices, const int &size, const int &X)
+{
+    int diffIdx = 1;
+    int diffAllIdx = 0;
+    for (int i = 1; i <= X; i <<= 1)
+    {
+        diffAllIdx += (i >> 1);
+        for (int j = 0; j < (i >> 1); ++j)
+            diffIndices[diffIdx++] = size - (--diffAllIdx);
+        diffAllIdx += i;
+    }
+}
+
+template <typename T, typename TT>
+inline static void ForwardHaarTransformX(const T *src, TT *dst, const int &step, const int &X, const int &N)
+{
+    const int size = X + (X << 1) - 2;
+    TT *dstX = new TT[size];
+
+    // Fill dstX with source values
+    for (int i = 0; i < X; ++i)
+        dstX[i] = *(src + i * step);
+
+    int idx = 0, dstIdx = X;
+    for (int i = X; i > 1; i >>= 1)
+    {
+        // Get sums
+        for (int j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = (dstX[idx + 2 * j] + dstX[idx + j * 2 + 1] + 1) >> 1;
+
+        // Get diffs
+        for (int j = 0; j < (i >> 1); ++j)
+            dstX[dstIdx++] = dstX[idx + 2 * j] - dstX[idx + j * 2 + 1];
+
+        idx = dstIdx - i;
+    }
+
+    // Calculate indices in the destination matrix.
+    int *diffIndices = new int[X];
+    CalculateIndices(diffIndices, size, X);
+
+    // Fill in destination matrix
+    dst[0] = dstX[size - 2];
+    for (int i = 1; i < X; ++i)
+        dst[i * N] = dstX[diffIndices[i]];
+
+    delete[] diffIndices;
+    delete[] dstX;
+}
+
+template <typename T, typename TT>
+inline static void ForwardHaarXxX(const T *ptr, TT *dst, const int &step, const int X)
+{
+    TT *temp = new TT[X * X];
+
+    // Transform columns first
+    for (int i = 0; i < X; ++i)
+        ForwardHaarTransformX<T, TT>(ptr + i, temp + i, step, X, X);
+
+    // Then transform rows
+    for (int i = 0; i < X; ++i)
+        ForwardHaarTransformX<TT, TT>(temp + i * X, dst + i * X, 1, X, 1);
+
+    delete[] temp;
+}
+
+
+template <typename T>
+inline static void InvHaarTransformX(T *src, T *dst, const int &X, const int &N)
+{
+    const unsigned dstSize = (X << 1) - 2;
+    T *dstX = new T[dstSize];
+    T *srcX = new T[X];
+
+    // Fill srcX with source values
+    srcX[0] = src[0] * 2;
+    for (int i = 1; i < X; ++i)
+        srcX[i] = src[i * N];
+
+    // Take care of first two elements
+    dstX[0] = srcX[0] + srcX[1];
+    dstX[1] = srcX[0] - srcX[1];
+
+    unsigned idx = 0, dstIdx = 2;
+    for (int i = 4; i < X; i <<= 1)
+    {
+        for (int j = 0; j < (i >> 1); ++j)
+        {
+            dstX[dstIdx++] = dstX[idx + j] + srcX[idx + 2 + j];
+            dstX[dstIdx++] = dstX[idx + j] - srcX[idx + 2 + j];
+        }
+        idx += (i >> 1);
+    }
+
+    // Handle the last X elements
+    dstIdx = 0;
+    for (int j = 0; j < (X >> 1); ++j)
+    {
+        dst[dstIdx++ * N] = (dstX[idx + j] + srcX[idx + 2 + j]) >> 1;
+        dst[dstIdx++ * N] = (dstX[idx + j] - srcX[idx + 2 + j]) >> 1;
+    }
+
+    delete[] dstX;
+    delete[] srcX;
+}
+
+template <typename T>
+inline static void InvHaarXxX(T *src, const int X)
+{
+    T *temp = new T[X * X];
+
+    // Invert columns first
+    for (int i = 0; i < X; ++i)
+        InvHaarTransformX<T>(src + i, temp + i, X, X);
+
+    // Then invert rows
+    for (int i = 0; i < X; ++i)
+        InvHaarTransformX<T>(temp + i * X, src + i * X, X, 1);
+
+    delete[] temp;
 }
 
 /// Transforms for 2x2 2D block
@@ -175,7 +299,7 @@ inline static void ForwardHaarTransform2(const T *src, TT *dst, const int &step)
 }
 
 template <typename T, typename TT>
-inline static void Haar2x2(const T *ptr, TT *dst, const int &step)
+inline static void Haar2x2(const T *ptr, TT *dst, const int &step, const int /*blockSize*/)
 {
     TT temp[4];
 
@@ -199,7 +323,7 @@ inline static void InvHaarTransform2(TT *src, TT *dst)
 }
 
 template <typename T>
-inline static void InvHaar2x2(T *src)
+inline static void InvHaar2x2(T *src, const int /*blockSize*/)
 {
     T temp[4];
 
@@ -238,7 +362,7 @@ inline static void ForwardHaarTransform4(const T *src, TT *dst, const int &step)
 }
 
 template <typename T, typename TT>
-inline static void Haar4x4(const T *ptr, TT *dst, const int &step)
+inline static void Haar4x4(const T *ptr, TT *dst, const int &step, const int /*blockSize*/)
 {
     TT temp[16];
 
@@ -269,7 +393,7 @@ inline static void InvHaarTransform4(TT *src, TT *dst)
 }
 
 template <typename T>
-inline static void InvHaar4x4(T *src)
+inline static void InvHaar4x4(T *src, const int /*blockSize*/)
 {
     T temp[16];
 
@@ -324,7 +448,7 @@ inline static void ForwardHaarTransform8(const T *src, TT *dst, const int &step)
 }
 
 template <typename T, typename TT>
-inline static void Haar8x8(const T *ptr, TT *dst, const int &step)
+inline static void Haar8x8(const T *ptr, TT *dst, const int &step, const int /*blockSize*/)
 {
     TT temp[64];
 
@@ -368,7 +492,7 @@ inline static void InvHaarTransform8(T *src, T *dst)
 }
 
 template <typename T>
-inline static void InvHaar8x8(T *src)
+inline static void InvHaar8x8(T *src, const int /*blockSize*/)
 {
     T temp[64];
 

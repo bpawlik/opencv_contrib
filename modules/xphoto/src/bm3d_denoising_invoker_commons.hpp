@@ -66,6 +66,12 @@ inline int getLargestPowerOf2SmallerThan(unsigned x)
     return x - (x >> 1);
 }
 
+// Returns true if x is a power of 2. Otherwise false.
+inline bool isPowerOf2(int x)
+{
+    return (x > 0) && !(x & (x - 1));
+}
+
 template <typename T, typename DT, typename CT>
 class BlockMatch
 {
@@ -299,7 +305,6 @@ public:
     }
 };
 
-
 template <class T>
 struct Array2d
 {
@@ -379,7 +384,6 @@ struct Array3d
         return a + i1*n2*n3 + i2*n3;
     }
 };
-
 
 }  // namespace xphoto
 }  // namespace cv

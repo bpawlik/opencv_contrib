@@ -124,8 +124,8 @@ private:
     const int slidingStep_;
 
     // Function pointers
-    void(*haarTransform2D)(const T *ptr, TT *dst, const int &step);
-    void(*inverseHaar2D)(TT *src);
+    void(*haarTransform2D)(const T *ptr, TT *dst, const int &step, const int blockSize);
+    void(*inverseHaar2D)(TT *src, const int blockSize);
 
     // Threshold map
     TT *thrMap_;
@@ -162,6 +162,10 @@ Bm3dDenoisingInvokerStep2<T, D, WT, TT>::Bm3dDenoisingInvokerStep2(
     // Calculate block matching threshold
     hBM_ = D::template calcBlockMatchingThreshold<int>(hBM, templateWindowSizeSq_);
 
+    // Check if template window size is a power of two
+    if (!isPowerOf2(templateWindowSize_))
+        CV_Error(Error::StsBadArg, "Unsupported template size! Template size must be power of two!");
+
     // Select transforms depending on the template size
     switch (templateWindowSize_)
     {
@@ -190,8 +194,8 @@ Bm3dDenoisingInvokerStep2<T, D, WT, TT>::Bm3dDenoisingInvokerStep2(
         inverseHaar2D = InvHaarXxX<TT, 64>;
         break;
     default:
-        CV_Error(Error::StsBadArg,
-            "Unsupported template size! Template size must be power of two in a range 2-64 (inclusive).");
+        haarTransform2D = ForwardHaarXxX<T, TT>;
+        inverseHaar2D = InvHaarXxX<TT>;
     }
 
     // Precompute threshold map
@@ -333,8 +337,8 @@ void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) co
             {
                 const T *candidatePatchSrc = currentPixelSrc + step * bmBasic[n].coord_y + bmBasic[n].coord_x;
                 const T *candidatePatchBasic = currentPixelBasic + step * bmBasic[n].coord_y + bmBasic[n].coord_x;
-                haarTransform2D(candidatePatchSrc, bmSrc[n].data(), step);
-                haarTransform2D(candidatePatchBasic, bmBasic[n].data(), step);
+                haarTransform2D(candidatePatchSrc, bmSrc[n].data(), step, blockSize);
+                haarTransform2D(candidatePatchBasic, bmBasic[n].data(), step, blockSize);
             }
 
             // Transform and shrink 1D columns
@@ -396,7 +400,7 @@ void Bm3dDenoisingInvokerStep2<T, D, WT, TT>::operator() (const Range& range) co
 
             // Inverse 2D transform
             for (int n = 0; n < elementSize; ++n)
-                inverseHaar2D(bmBasic[n].data());
+                inverseHaar2D(bmBasic[n].data(), blockSize);
 
             // Aggregate the results (increase sumNonZero to avoid division by zero)
             float weight = 1.0f / (float)(++wienerCoefficients);
