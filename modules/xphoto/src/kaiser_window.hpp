@@ -70,7 +70,7 @@ static float bessel0(const float &x)
     for (int m = 0; m < MAX_ITER; ++m)
     {
         float factM = (float)factorial(m);
-        float inc = std::powf(1.0f / factM * std::powf(x * 0.5f, (float)m), 2);
+        float inc = std::pow(1.0f / factM * std::pow(x * 0.5f, (float)m), 2.0f);
         sum += inc;
 
         if ((inc / sum) < 0.001F)
@@ -94,7 +94,7 @@ static void calcKaiserWindow1D(cv::Mat &dst, const int N, const float beta)
     float *p = dst.ptr<float>(0);
     for (int i = 0; i < N; ++i)
     {
-        float b = beta * std::sqrtf(1.0f - powf(2.0f * i / (N - 1.0f) - 1.0f, 2.0f));
+        float b = beta * std::sqrt(1.0f - std::pow(2.0f * i / (N - 1.0f) - 1.0f, 2.0f));
         p[i] = bessel0<MAX_ITER_BESSEL>(b) / bessel0<MAX_ITER_BESSEL>(beta);
     }
 }
