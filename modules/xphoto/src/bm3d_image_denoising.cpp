@@ -73,7 +73,7 @@ static void bm3dDenoising_(
         if (step == BM3D_STEP1 || step == BM3D_STEPALL)
         {
             parallel_for_(cv::Range(0, src.rows),
-                Bm3dDenoisingInvokerStep1<ST, D, float, TT>(
+                Bm3dDenoisingInvokerStep1<ST, D, float, TT, HaarTransform<ST, TT> >(
                     src,
                     basic,
                     templateWindowSize,
@@ -88,7 +88,7 @@ static void bm3dDenoising_(
         if (step == BM3D_STEP2 || step == BM3D_STEPALL)
         {
             parallel_for_(cv::Range(0, src.rows),
-                Bm3dDenoisingInvokerStep2<ST, D, float, TT>(
+                Bm3dDenoisingInvokerStep2<ST, D, float, TT, HaarTransform<ST, TT> >(
                     src,
                     basic,
                     dst,

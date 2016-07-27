@@ -214,12 +214,13 @@ namespace cvtest
             src[i] = (i % 10) * 10;
 
         // Use tailored transforms
-        Haar8x8(src, dst, templateWindowSize, templateWindowSize);
-        InvHaar8x8(dst, templateWindowSize);
+        HaarTransform<uchar, short>::RegisterTransforms2D(templateWindowSize);
+        HaarTransform<uchar, short>::forwardTransform2D(src, dst, templateWindowSize, templateWindowSize);
+        HaarTransform<uchar, short>::inverseTransform2D(dst, templateWindowSize);
 
         // Use generic transforms
-        ForwardHaarXxX<uchar, short, templateWindowSize>(src, dstSec, templateWindowSize, templateWindowSize);
-        InvHaarXxX<short, templateWindowSize>(dstSec, templateWindowSize);
+        HaarTransform2D::ForwardTransformXxX<uchar, short, templateWindowSize>(src, dstSec, templateWindowSize, templateWindowSize);
+        HaarTransform2D::InverseTransformXxX<short, templateWindowSize>(dstSec, templateWindowSize);
 
         for (unsigned i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(dst[i], dstSec[i]);
@@ -239,8 +240,8 @@ namespace cvtest
             src[i] = i;
         }
 
-        Haar4x4(src, dst, templateWindowSize, templateWindowSize);
-        InvHaar4x4(dst, templateWindowSize);
+        HaarTransform2D::ForwardTransform4x4(src, dst, templateWindowSize, templateWindowSize);
+        HaarTransform2D::InverseTransform4x4(dst, templateWindowSize);
 
         for (uchar i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(static_cast<short>(src[i]), dst[i]);
@@ -260,8 +261,8 @@ namespace cvtest
             src[i] = i;
         }
 
-        Haar8x8(src, dst, templateWindowSize, templateWindowSize);
-        InvHaar8x8(dst, templateWindowSize);
+        HaarTransform2D::ForwardTransform8x8(src, dst, templateWindowSize, templateWindowSize);
+        HaarTransform2D::InverseTransform8x8(dst, templateWindowSize);
 
         for (uchar i = 0; i < templateWindowSizeSq; ++i)
             ASSERT_EQ(static_cast<short>(src[i]), dst[i]);
@@ -287,29 +288,29 @@ namespace cvtest
             switch (groupSize)
             {
             case 16:
-                ForwardHaarTransform16(bm, n);
+                HaarTransform1D::ForwardTransform16(bm, n);
                 sumNonZero += HardThreshold<16>(bm, n, thrMapPtr1D);
-                InverseHaarTransform16(bm, n);
+                HaarTransform1D::InverseTransform16(bm, n);
                 break;
             case 8:
-                ForwardHaarTransform8(bm, n);
+                HaarTransform1D::ForwardTransform8(bm, n);
                 sumNonZero += HardThreshold<8>(bm, n, thrMapPtr1D);
-                InverseHaarTransform8(bm, n);
+                HaarTransform1D::InverseTransform8(bm, n);
                 break;
             case 4:
-                ForwardHaarTransform4(bm, n);
+                HaarTransform1D::ForwardTransform4(bm, n);
                 sumNonZero += HardThreshold<4>(bm, n, thrMapPtr1D);
-                InverseHaarTransform4(bm, n);
+                HaarTransform1D::InverseTransform4(bm, n);
                 break;
             case 2:
-                ForwardHaarTransform2(bm, n);
+                HaarTransform1D::ForwardTransform2(bm, n);
                 sumNonZero += HardThreshold<2>(bm, n, thrMapPtr1D);
-                InverseHaarTransform2(bm, n);
+                HaarTransform1D::InverseTransform2(bm, n);
                 break;
             default:
-                ForwardHaarTransformN(bm, n, groupSize);
+                HaarTransform1D::ForwardTransformN(bm, n, groupSize);
                 sumNonZero += HardThreshold(bm, n, thrMapPtr1D, groupSize);
-                InverseHaarTransformN(bm, n, groupSize);
+                HaarTransform1D::InverseTransformN(bm, n, groupSize);
             }
         }
 
@@ -337,8 +338,8 @@ namespace cvtest
         // Precompute separate maps for transform and shrinkage verification
         short *thrMapTransform = NULL;
         short *thrMapShrinkage = NULL;
-        calcHaarThresholdMap3D(thrMapTransform, 0, templateWindowSize, maxGroupSize);
-        calcHaarThresholdMap3D(thrMapShrinkage, h, templateWindowSize, maxGroupSize);
+        HaarTransform<short, short>::calcThresholdMap3D(thrMapTransform, 0, templateWindowSize, maxGroupSize);
+        HaarTransform<short, short>::calcThresholdMap3D(thrMapShrinkage, h, templateWindowSize, maxGroupSize);
 
         // Generate some data
         BlockMatch<short, int, short> *bm = new BlockMatch<short, int, short>[maxGroupSize];
@@ -382,7 +383,7 @@ namespace cvtest
         const int numberOfElements = 8;
         const int arrSize = (numberOfElements << 1) - 1;
         float *thrMap1D = NULL;
-        calcHaarThresholdMap1D(thrMap1D, numberOfElements);
+        HaarTransform<short, short>::calcThresholdMap1D(thrMap1D, numberOfElements);
 
         // Expected array
         const float kThrMap1D[arrSize] = {
@@ -402,7 +403,7 @@ namespace cvtest
     {
         const int templateWindowSize = 4;
         float *thrMap2D = NULL;
-        calcHaarThresholdMap2D(thrMap2D, templateWindowSize);
+        HaarTransform<short, short>::calcThresholdMap2D(thrMap2D, templateWindowSize);
 
         // Expected array
         const float kThrMap4x4[templateWindowSize * templateWindowSize] = {
@@ -422,7 +423,7 @@ namespace cvtest
     {
         const int templateWindowSize = 8;
         float *thrMap2D = NULL;
-        calcHaarThresholdMap2D(thrMap2D, templateWindowSize);
+        HaarTransform<short, short>::calcThresholdMap2D(thrMap2D, templateWindowSize);
 
         // Expected array
         const float kThrMap8x8[templateWindowSize * templateWindowSize] = {

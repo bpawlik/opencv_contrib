@@ -42,6 +42,8 @@
 #ifndef __OPENCV_BM3D_DENOISING_INVOKER_COMMONS_HPP__
 #define __OPENCV_BM3D_DENOISING_INVOKER_COMMONS_HPP__
 
+#include "bm3d_denoising_invoker_structs.hpp"
+
 // std::isnan is a part of C++11 and it is not supported in MSVS2010/2012
 #if defined _MSC_VER && _MSC_VER < 1800 /* MSVC 2013 */
 #include <float.h>
@@ -72,318 +74,90 @@ inline bool isPowerOf2(int x)
     return (x > 0) && !(x & (x - 1));
 }
 
+
+template <typename T>
+inline static void shrink(T &val, T &nonZeroCount, const T &threshold)
+{
+    if (std::abs(val) < threshold)
+        val = 0;
+    else
+        ++nonZeroCount;
+}
+
+template <typename T>
+inline static void hardThreshold2D(T *dst, T *thrMap, const int &templateWindowSizeSq)
+{
+    for (int i = 1; i < templateWindowSizeSq; ++i)
+    {
+        if (std::abs(dst[i] < thrMap[i]))
+            dst[i] = 0;
+    }
+}
+
+template <int N, typename T, typename DT, typename CT>
+inline static T HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap)
+{
+    T nonZeroCount = 0;
+
+    for (int i = 0; i < N; ++i)
+        shrink(z[i][n], nonZeroCount, *thrMap++);
+
+    return nonZeroCount;
+}
+
 template <typename T, typename DT, typename CT>
-class BlockMatch
+inline static T HardThreshold(BlockMatch<T, DT, CT> *z, const int &n, T *&thrMap, const int &N)
 {
-public:
-    // Data accessor
-    T* data()
-    {
-        return data_;
-    }
+    T nonZeroCount = 0;
 
-    // Const version of data accessor
-    const T* data() const
-    {
-        return data_;
-    }
+    for (int i = 0; i < N; ++i)
+        shrink(z[i][n], nonZeroCount, *thrMap++);
 
-    // Allocate memory for data
-    void init(const int &blockSizeSq)
-    {
-        data_ = new T[blockSizeSq];
-    }
+    return nonZeroCount;
+}
 
-    // Release data memory
-    void release()
-    {
-        delete[] data_;
-    }
-
-    // Overloaded operator for convenient assignment
-    void operator()(const DT &_dist, const CT &_coord_x, const CT &_coord_y)
-    {
-        dist = _dist;
-        coord_x = _coord_x;
-        coord_y = _coord_y;
-    }
-
-    // Overloaded array subscript operator
-    T& operator[](const std::size_t &idx)
-    {
-        return data_[idx];
-    };
-
-    // Overloaded const array subscript operator
-    const T& operator[](const std::size_t &idx) const
-    {
-        return data_[idx];
-    };
-
-    // Overloaded comparison operator for sorting
-    bool operator<(const BlockMatch& right) const
-    {
-        return dist < right.dist;
-    }
-
-    // Block matching distance
-    DT dist;
-
-    // Relative coordinates to the current search window
-    CT coord_x;
-    CT coord_y;
-
-private:
-    // Pointer to the pixel values of the block
-    T *data_;
-};
-
-class DistAbs
+template <int N, typename T, typename DT, typename CT>
+inline static int WienerFiltering(BlockMatch<T, DT, CT> *zSrc, BlockMatch<T, DT, CT> *zBasic, const int &n, T *&thrMap)
 {
-    template <typename T>
-    struct calcDist_
-    {
-        static inline int f(const T &a, const T &b)
-        {
-            return std::abs(a - b);
-        }
-    };
+    int wienerCoeffs = 0;
 
-    template <typename ET>
-    struct calcDist_<Vec<ET, 2> >
+    for (int i = 0; i < N; ++i)
     {
-        static inline int f(const Vec<ET, 2> a, const Vec<ET, 2> b)
-        {
-            return std::abs((int)(a[0] - b[0])) + std::abs((int)(a[1] - b[1]));
-        }
-    };
+        // Possible optimization point here to get rid of floats and casts
+        int basicSq = zBasic[i][n] * zBasic[i][n];
+        int sigmaSq = *thrMap * *thrMap;
+        int denom = basicSq + sigmaSq;
+        float wie = (denom == 0) ? 1.0f : ((float)basicSq / (float)denom);
 
-    template <typename ET>
-    struct calcDist_<Vec<ET, 3> >
-    {
-        static inline int f(const Vec<ET, 3> a, const Vec<ET, 3> b)
-        {
-            return
-                std::abs((int)(a[0] - b[0])) +
-                std::abs((int)(a[1] - b[1])) +
-                std::abs((int)(a[2] - b[2]));
-        }
-    };
-
-    template <typename ET>
-    struct calcDist_<Vec<ET, 4> >
-    {
-        static inline int f(const Vec<ET, 4> a, const Vec<ET, 4> b)
-        {
-            return
-                std::abs((int)(a[0] - b[0])) +
-                std::abs((int)(a[1] - b[1])) +
-                std::abs((int)(a[2] - b[2])) +
-                std::abs((int)(a[3] - b[3]));
-        }
-    };
-
-public:
-    template <typename T>
-    static inline int calcDist(const T &a, const T &b)
-    {
-        return calcDist_<T>::f(a, b);
+        zBasic[i][n] = (T)(zSrc[i][n] * wie);
+        wienerCoeffs += (int)wie;
+        ++thrMap;
     }
 
-    template <typename T>
-    static inline int calcDist(const Mat& m, int i1, int j1, int i2, int j2)
-    {
-        const T a = m.at<T>(i1, j1);
-        const T b = m.at<T>(i2, j2);
-        return calcDist<T>(a, b);
-    }
+    return wienerCoeffs;
+}
 
-    template <typename T>
-    static inline int calcUpDownDist(T a_up, T a_down, T b_up, T b_down)
-    {
-        return calcDist<T>(a_down, b_down) - calcDist<T>(a_up, b_up);
-    };
-
-    template <typename T>
-    static inline T calcBlockMatchingThreshold(const T &blockMatchThrL2, const T &blockSizeSq)
-    {
-        return (T)(std::sqrt((double)blockMatchThrL2) * blockSizeSq);
-    }
-};
-
-class DistSquared
+template <typename T, typename DT, typename CT>
+inline static int WienerFiltering(BlockMatch<T, DT, CT> *zSrc, BlockMatch<T, DT, CT> *zBasic, const int &n, T *&thrMap, const unsigned &N)
 {
-    template <typename T>
-    struct calcDist_
-    {
-        static inline int f(const T &a, const T &b)
-        {
-            return (a - b) * (a - b);
-        }
-    };
+    int wienerCoeffs = 0;
 
-    template <typename ET>
-    struct calcDist_<Vec<ET, 2> >
+    for (unsigned i = 0; i < N; ++i)
     {
-        static inline int f(const Vec<ET, 2> a, const Vec<ET, 2> b)
-        {
-            return (int)(a[0] - b[0])*(int)(a[0] - b[0]) + (int)(a[1] - b[1])*(int)(a[1] - b[1]);
-        }
-    };
+        // Possible optimization point here to get rid of floats and casts
+        int basicSq = zBasic[i][n] * zBasic[i][n];
+        int sigmaSq = *thrMap * *thrMap;
+        int denom = basicSq + sigmaSq;
+        float wie = (denom == 0) ? 1.0f : ((float)basicSq / (float)denom);
 
-    template <typename ET>
-    struct calcDist_<Vec<ET, 3> >
-    {
-        static inline int f(const Vec<ET, 3> a, const Vec<ET, 3> b)
-        {
-            return
-                (int)(a[0] - b[0])*(int)(a[0] - b[0]) +
-                (int)(a[1] - b[1])*(int)(a[1] - b[1]) +
-                (int)(a[2] - b[2])*(int)(a[2] - b[2]);
-        }
-    };
-
-    template <typename ET>
-    struct calcDist_<Vec<ET, 4> >
-    {
-        static inline int f(const Vec<ET, 4> a, const Vec<ET, 4> b)
-        {
-            return
-                (int)(a[0] - b[0])*(int)(a[0] - b[0]) +
-                (int)(a[1] - b[1])*(int)(a[1] - b[1]) +
-                (int)(a[2] - b[2])*(int)(a[2] - b[2]) +
-                (int)(a[3] - b[3])*(int)(a[3] - b[3]);
-        }
-    };
-
-    template <typename T> struct calcUpDownDist_
-    {
-        static inline int f(T a_up, T a_down, T b_up, T b_down)
-        {
-            int A = a_down - b_down;
-            int B = a_up - b_up;
-            return (A - B)*(A + B);
-        }
-    };
-
-    template <typename ET, int n> struct calcUpDownDist_<Vec<ET, n> >
-    {
-    private:
-        typedef Vec<ET, n> T;
-    public:
-        static inline int f(T a_up, T a_down, T b_up, T b_down)
-        {
-            return calcDist<T>(a_down, b_down) - calcDist<T>(a_up, b_up);
-        }
-    };
-
-public:
-    template <typename T>
-    static inline int calcDist(const T &a, const T &b)
-    {
-        return calcDist_<T>::f(a, b);
+        zBasic[i][n] = (T)(zSrc[i][n] * wie);
+        wienerCoeffs += (int)wie;
+        ++thrMap;
     }
 
-    template <typename T>
-    static inline int calcDist(const Mat& m, int i1, int j1, int i2, int j2)
-    {
-        const T a = m.at<T>(i1, j1);
-        const T b = m.at<T>(i2, j2);
-        return calcDist<T>(a, b);
-    }
+    return wienerCoeffs;
+}
 
-    template <typename T>
-    static inline int calcUpDownDist(T a_up, T a_down, T b_up, T b_down)
-    {
-        return calcUpDownDist_<T>::f(a_up, a_down, b_up, b_down);
-    };
-
-    template <typename T>
-    static inline T calcBlockMatchingThreshold(const T &blockMatchThrL2, const T &blockSizeSq)
-    {
-        return blockMatchThrL2 * blockSizeSq;
-    }
-};
-
-template <class T>
-struct Array2d
-{
-    T* a;
-    int n1, n2;
-    bool needToDeallocArray;
-
-    Array2d(const Array2d& array2d) :
-        a(array2d.a), n1(array2d.n1), n2(array2d.n2), needToDeallocArray(false)
-    {
-        if (array2d.needToDeallocArray)
-        {
-            CV_Error(Error::BadDataPtr, "Copy constructor for self allocating arrays not supported");
-        }
-    }
-
-    Array2d(T* _a, int _n1, int _n2) :
-        a(_a), n1(_n1), n2(_n2), needToDeallocArray(false)
-    {
-    }
-
-    Array2d(int _n1, int _n2) :
-        n1(_n1), n2(_n2), needToDeallocArray(true)
-    {
-        a = new T[n1*n2];
-    }
-
-    ~Array2d()
-    {
-        if (needToDeallocArray)
-            delete[] a;
-    }
-
-    T* operator [] (int i)
-    {
-        return a + i*n2;
-    }
-
-    inline T* row_ptr(int i)
-    {
-        return (*this)[i];
-    }
-};
-
-template <class T>
-struct Array3d
-{
-    T* a;
-    int n1, n2, n3;
-    bool needToDeallocArray;
-
-    Array3d(T* _a, int _n1, int _n2, int _n3) :
-        a(_a), n1(_n1), n2(_n2), n3(_n3), needToDeallocArray(false)
-    {
-    }
-
-    Array3d(int _n1, int _n2, int _n3) :
-        n1(_n1), n2(_n2), n3(_n3), needToDeallocArray(true)
-    {
-        a = new T[n1*n2*n3];
-    }
-
-    ~Array3d()
-    {
-        if (needToDeallocArray)
-            delete[] a;
-    }
-
-    Array2d<T> operator [] (int i)
-    {
-        Array2d<T> array2d(a + i*n2*n3, n2, n3);
-        return array2d;
-    }
-
-    inline T* row_ptr(int i1, int i2)
-    {
-        return a + i1*n2*n3 + i2*n3;
-    }
-};
 
 }  // namespace xphoto
 }  // namespace cv

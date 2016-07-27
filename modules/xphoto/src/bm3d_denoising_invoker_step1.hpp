@@ -51,7 +51,7 @@ namespace cv
 namespace xphoto
 {
 
-template <typename T, typename D, typename WT, typename TT>
+template <typename T, typename D, typename WT, typename TT, typename TC>
 struct Bm3dDenoisingInvokerStep1 : public ParallelLoopBody
 {
 public:
@@ -120,10 +120,6 @@ private:
     // Sliding step
     const int slidingStep_;
 
-    // Function pointers
-    void(*haarTransform2D)(const T *ptr, TT *dst, const int &step, const int blockSize);
-    void(*inverseHaar2D)(TT *src, const int blockSize);
-
     // Threshold map
     TT *thrMap_;
 
@@ -131,8 +127,8 @@ private:
     float *kaiser_;
 };
 
-template <typename T, typename D, typename WT, typename TT>
-Bm3dDenoisingInvokerStep1<T, D, WT, TT>::Bm3dDenoisingInvokerStep1(
+template <typename T, typename D, typename WT, typename TT, typename TC>
+Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::Bm3dDenoisingInvokerStep1(
     const Mat& src,
     Mat& dst,
     const int &templateWindowSize,
@@ -161,58 +157,25 @@ Bm3dDenoisingInvokerStep1<T, D, WT, TT>::Bm3dDenoisingInvokerStep1(
     // Calculate block matching threshold
     hBM_ = D::template calcBlockMatchingThreshold<int>(hBM, templateWindowSizeSq_);
 
-    // Check if template window size is a power of two
-    if (!isPowerOf2(templateWindowSize_))
-        CV_Error(Error::StsBadArg, "Unsupported template size! Template size must be power of two!");
-
     // Select transforms depending on the template size
-    switch (templateWindowSize_)
-    {
-    case 2:
-        haarTransform2D = Haar2x2<T, TT>;
-        inverseHaar2D = InvHaar2x2<TT>;
-        break;
-    case 4:
-        haarTransform2D = Haar4x4<T, TT>;
-        inverseHaar2D = InvHaar4x4<TT>;
-        break;
-    case 8:
-        haarTransform2D = Haar8x8<T, TT>;
-        inverseHaar2D = InvHaar8x8<TT>;
-        break;
-    case 16:
-        haarTransform2D = ForwardHaarXxX<T, TT, 16>;
-        inverseHaar2D = InvHaarXxX<TT, 16>;
-        break;
-    case 32:
-        haarTransform2D = ForwardHaarXxX<T, TT, 32>;
-        inverseHaar2D = InvHaarXxX<TT, 32>;
-        break;
-    case 64:
-        haarTransform2D = ForwardHaarXxX<T, TT, 64>;
-        inverseHaar2D = InvHaarXxX<TT, 64>;
-        break;
-    default:
-        haarTransform2D = ForwardHaarXxX<T, TT>;
-        inverseHaar2D = InvHaarXxX<TT>;
-    }
+    TC::RegisterTransforms2D(templateWindowSize_);
 
     // Precompute threshold map
-    calcHaarThresholdMap3D(thrMap_, h, templateWindowSize_, groupSize_);
+    TC::calcThresholdMap3D(thrMap_, h, templateWindowSize_, groupSize_);
 
     // Generate kaiser window
     calcKaiserWindow2D(kaiser_, templateWindowSize_, beta);
 }
 
-template<typename T, typename D, typename WT, typename TT>
-inline Bm3dDenoisingInvokerStep1<T, D, WT, TT>::~Bm3dDenoisingInvokerStep1()
+template<typename T, typename D, typename WT, typename TT, typename TC>
+inline Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::~Bm3dDenoisingInvokerStep1()
 {
     delete[] thrMap_;
     delete[] kaiser_;
 }
 
-template <typename T, typename D, typename WT, typename TT>
-void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) const
+template <typename T, typename D, typename WT, typename TT, typename TC>
+void Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::operator() (const Range& range) const
 {
     const int size = (range.size() + 2 * borderSize_) * srcExtended_.cols;
     std::vector<WT> weightedSum(size, 0.0);
@@ -332,7 +295,7 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
             for (int n = 0; n < elementSize; ++n)
             {
                 const T *candidatePatch = currentPixel + step * bm[n].coord_y + bm[n].coord_x;
-                haarTransform2D(candidatePatch, bm[n].data(), step, blockSize);
+                TC::forwardTransform2D(candidatePatch, bm[n].data(), step, blockSize);
             }
 
             // Transform and shrink 1D columns
@@ -343,33 +306,34 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
             case 16:
                 for (int n = 0; n < blockSizeSq; n++)
                 {
-                    ForwardHaarTransform16(bm, n);
+                    TC::forwardTransform16(bm, n);
                     sumNonZero += HardThreshold<16>(bm, n, thrMapPtr1D);
-                    InverseHaarTransform16(bm, n);
+                    TC::inverseTransform16(bm, n);
                 }
                 break;
             case 8:
                 for (int n = 0; n < blockSizeSq; n++)
                 {
-                    ForwardHaarTransform8(bm, n);
+                    TC::forwardTransform8(bm, n);
                     sumNonZero += HardThreshold<8>(bm, n, thrMapPtr1D);
-                    InverseHaarTransform8(bm, n);
+                    TC::inverseTransform8(bm, n);
                 }
                 break;
             case 4:
                 for (int n = 0; n < blockSizeSq; n++)
                 {
-                    ForwardHaarTransform4(bm, n);
+                    TC::forwardTransform4(bm, n);
                     sumNonZero += HardThreshold<4>(bm, n, thrMapPtr1D);
-                    InverseHaarTransform4(bm, n);
+                    TC::inverseTransform4(bm, n);
                 }
                 break;
             case 2:
                 for (int n = 0; n < blockSizeSq; n++)
                 {
-                    ForwardHaarTransform2(bm, n);
+                    TC::forwardTransform2(bm, n);
+                    TC::forwardTransform2(bm, n);
                     sumNonZero += HardThreshold<2>(bm, n, thrMapPtr1D);
-                    InverseHaarTransform2(bm, n);
+                    TC::inverseTransform2(bm, n);
                 }
                 break;
             case 1:
@@ -382,15 +346,15 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
             default:
                 for (int n = 0; n < blockSizeSq; n++)
                 {
-                    ForwardHaarTransformN(bm, n, elementSize);
+                    TC::forwardTransformN(bm, n, elementSize);
                     sumNonZero += HardThreshold(bm, n, thrMapPtr1D, elementSize);
-                    InverseHaarTransformN(bm, n, elementSize);
+                    TC::inverseTransformN(bm, n, elementSize);
                 }
             }
 
             // Inverse 2D transform
             for (int n = 0; n < elementSize; ++n)
-                inverseHaar2D(bm[n].data(), blockSize);
+                TC::inverseTransform2D(bm[n].data(), blockSize);
 
             // Aggregate the results (increase sumNonZero to avoid division by zero)
             float weight = 1.0f / (float)(++sumNonZero);
@@ -443,8 +407,8 @@ void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::operator() (const Range& range) co
     }
 }
 
-template <typename T, typename D, typename WT, typename TT>
-inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForFirstElementInRow(
+template <typename T, typename D, typename WT, typename TT, typename TC>
+inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::calcDistSumsForFirstElementInRow(
     int i,
     Array2d<int>& distSums,
     Array3d<int>& colDistSums,
@@ -497,8 +461,8 @@ inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForFirstElement
     }
 }
 
-template <typename T, typename D, typename WT, typename TT>
-inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT>::calcDistSumsForAllElementsInFirstRow(
+template <typename T, typename D, typename WT, typename TT, typename TC>
+inline void Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::calcDistSumsForAllElementsInFirstRow(
     int i,
     int j,
     int firstColNum,
