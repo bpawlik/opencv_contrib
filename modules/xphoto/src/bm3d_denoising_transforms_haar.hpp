@@ -55,7 +55,7 @@ template <typename T, typename TT>
 class Transform;
 
 template <typename T, typename TT>
-class HaarTransform : public Transform<T, TT>
+class HaarTransform
 {
     static void calcCoefficients1D(cv::Mat &coeff1D, const int &numberOfElements)
     {
