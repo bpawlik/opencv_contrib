@@ -50,7 +50,6 @@ namespace xphoto
 {
 
 // Following class contains interface of the tranform domain functions.
-// Every future transform must implement this interface.
 template <typename T, typename TT>
 class Transform
 {
@@ -66,14 +65,6 @@ class Transform
     // Specialized 1D transforms
     typedef void(*Forward1Ds)(BlockMatch<TT, int, TT> *z, const int &n);
     typedef void(*Inverse1Ds)(BlockMatch<TT, int, TT> *z, const int &n);
-
-    virtual void calcThresholdMap3D(
-        TT *&outThrMap1D,
-        const float &hardThr1D,
-        const int &templateWindowSize,
-        const int &groupSize) = 0;
-
-    virtual void RegisterTransforms2D(const int &templateWindowSize) = 0;
 };
 
 }  // namespace xphoto
