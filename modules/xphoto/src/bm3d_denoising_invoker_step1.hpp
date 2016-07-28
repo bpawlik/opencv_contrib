@@ -145,7 +145,7 @@ Bm3dDenoisingInvokerStep1<T, D, WT, TT, TC>::Bm3dDenoisingInvokerStep1(
 
     halfTemplateWindowSize_ = templateWindowSize >> 1;
     halfSearchWindowSize_ = searchWindowSize >> 1;
-    templateWindowSize_ = halfTemplateWindowSize_ << 1;
+    templateWindowSize_ = templateWindowSize;
     searchWindowSize_ = searchWindowSize;
     templateWindowSizeSq_ = templateWindowSize_ * templateWindowSize_;
     searchWindowSizeSq_ = searchWindowSize_ * searchWindowSize_;
