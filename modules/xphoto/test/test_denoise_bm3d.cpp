@@ -59,6 +59,8 @@ using namespace cv::xphoto;
 #  define DUMP(image, path)
 #endif
 
+#ifdef OPENCV_ENABLE_NONFREE 
+
 namespace cvtest
 {
     TEST(xphoto_DenoisingBm3dGrayscale, regression_L2)
@@ -456,5 +458,8 @@ namespace cvtest
         ASSERT_EQ(0, getLargestPowerOf2SmallerThan(0));
     }
 
-#endif
+#endif  // TEST_TRANSFORMS
+
 }
+
+#endif  // OPENCV_ENABLE_NONFREE 

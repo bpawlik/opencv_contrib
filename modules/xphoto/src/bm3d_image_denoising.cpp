@@ -108,6 +108,8 @@ static void bm3dDenoising_(
     }
 }
 
+#ifdef OPENCV_ENABLE_NONFREE 
+
 void bm3dDenoising(
     InputArray _src,
     InputOutputArray _basic,
@@ -258,6 +260,47 @@ void bm3dDenoising(
     if (step == BM3D_STEP1)
         _dst.assign(basic);
 }
+
+#else
+
+void bm3dDenoising(
+    InputArray _src,
+    InputOutputArray _basic,
+    OutputArray _dst,
+    float h,
+    int templateWindowSize,
+    int searchWindowSize,
+    int blockMatchingStep1,
+    int blockMatchingStep2,
+    int groupSize,
+    int slidingStep,
+    float beta,
+    int normType,
+    int step,
+    int transformType)
+{
+    // Empty implementation
+}
+
+void bm3dDenoising(
+    InputArray _src,
+    OutputArray _dst,
+    float h,
+    int templateWindowSize,
+    int searchWindowSize,
+    int blockMatchingStep1,
+    int blockMatchingStep2,
+    int groupSize,
+    int slidingStep,
+    float beta,
+    int normType,
+    int step,
+    int transformType)
+{
+    // Empty implementation
+}
+
+#endif
 
 }  // namespace xphoto
 }  // namespace cv
