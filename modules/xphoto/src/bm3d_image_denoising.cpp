@@ -42,14 +42,20 @@
 #include "opencv2/xphoto.hpp"
 #include "opencv2/core.hpp"
 
+#ifdef OPENCV_ENABLE_NONFREE 
+
 #include "bm3d_denoising_invoker_step1.hpp"
 #include "bm3d_denoising_invoker_step2.hpp"
 #include "bm3d_denoising_transforms.hpp"
+
+#endif
 
 namespace cv
 {
 namespace xphoto
 {
+
+#ifdef OPENCV_ENABLE_NONFREE 
 
 template<typename ST, typename D, typename TT>
 static void bm3dDenoising_(
@@ -107,8 +113,6 @@ static void bm3dDenoising_(
             "Unsupported number of channels! Only 1 channel is supported at the moment.");
     }
 }
-
-#ifdef OPENCV_ENABLE_NONFREE 
 
 void bm3dDenoising(
     InputArray _src,
@@ -264,38 +268,38 @@ void bm3dDenoising(
 #else
 
 void bm3dDenoising(
-    InputArray _src,
-    InputOutputArray _basic,
-    OutputArray _dst,
-    float h,
-    int templateWindowSize,
-    int searchWindowSize,
-    int blockMatchingStep1,
-    int blockMatchingStep2,
-    int groupSize,
-    int slidingStep,
-    float beta,
-    int normType,
-    int step,
-    int transformType)
+    InputArray /* _src */,
+    InputOutputArray /* _basic */,
+    OutputArray /* _dst */,
+    float /* h */,
+    int /* templateWindowSize */,
+    int /* searchWindowSize */,
+    int /* blockMatchingStep1 */,
+    int /* blockMatchingStep2 */,
+    int /* groupSize */,
+    int /* slidingStep */,
+    float /* beta */,
+    int /* normType */,
+    int /* step */,
+    int /* transformType */)
 {
     // Empty implementation
 }
 
 void bm3dDenoising(
-    InputArray _src,
-    OutputArray _dst,
-    float h,
-    int templateWindowSize,
-    int searchWindowSize,
-    int blockMatchingStep1,
-    int blockMatchingStep2,
-    int groupSize,
-    int slidingStep,
-    float beta,
-    int normType,
-    int step,
-    int transformType)
+    InputArray /* _src */,
+    OutputArray /* _dst */,
+    float /* h */,
+    int /* templateWindowSize */,
+    int /* searchWindowSize */,
+    int /* blockMatchingStep1 */,
+    int /* blockMatchingStep2 */,
+    int /* groupSize */,
+    int /* slidingStep */,
+    float /* beta */,
+    int /* normType */,
+    int /* step */,
+    int /* transformType */)
 {
     // Empty implementation
 }
