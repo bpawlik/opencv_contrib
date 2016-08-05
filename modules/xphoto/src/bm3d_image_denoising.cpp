@@ -268,40 +268,69 @@ void bm3dDenoising(
 #else
 
 void bm3dDenoising(
-    InputArray /* _src */,
-    InputOutputArray /* _basic */,
-    OutputArray /* _dst */,
-    float /* h */,
-    int /* templateWindowSize */,
-    int /* searchWindowSize */,
-    int /* blockMatchingStep1 */,
-    int /* blockMatchingStep2 */,
-    int /* groupSize */,
-    int /* slidingStep */,
-    float /* beta */,
-    int /* normType */,
-    int /* step */,
-    int /* transformType */)
+    InputArray _src,
+    InputOutputArray _basic,
+    OutputArray _dst,
+    float h,
+    int templateWindowSize,
+    int searchWindowSize,
+    int blockMatchingStep1,
+    int blockMatchingStep2,
+    int groupSize,
+    int slidingStep,
+    float beta,
+    int normType,
+    int step,
+    int transformType)
 {
     // Empty implementation
+
+    CV_UNUSED(_src);
+    CV_UNUSED(_basic);
+    CV_UNUSED(_dst);
+    CV_UNUSED(h);
+    CV_UNUSED(templateWindowSize);
+    CV_UNUSED(searchWindowSize);
+    CV_UNUSED(blockMatchingStep1);
+    CV_UNUSED(blockMatchingStep2);
+    CV_UNUSED(groupSize);
+    CV_UNUSED(slidingStep);
+    CV_UNUSED(beta);
+    CV_UNUSED(normType);
+    CV_UNUSED(step);
+    CV_UNUSED(transformType);
 }
 
 void bm3dDenoising(
-    InputArray /* _src */,
-    OutputArray /* _dst */,
-    float /* h */,
-    int /* templateWindowSize */,
-    int /* searchWindowSize */,
-    int /* blockMatchingStep1 */,
-    int /* blockMatchingStep2 */,
-    int /* groupSize */,
-    int /* slidingStep */,
-    float /* beta */,
-    int /* normType */,
-    int /* step */,
-    int /* transformType */)
+    InputArray _src,
+    OutputArray _dst,
+    float h,
+    int templateWindowSize,
+    int searchWindowSize,
+    int blockMatchingStep1,
+    int blockMatchingStep2,
+    int groupSize,
+    int slidingStep,
+    float beta,
+    int normType,
+    int step,
+    int transformType)
 {
     // Empty implementation
+
+    CV_UNUSED(_src);
+    CV_UNUSED(_dst);
+    CV_UNUSED(h);
+    CV_UNUSED(templateWindowSize);
+    CV_UNUSED(searchWindowSize);
+    CV_UNUSED(blockMatchingStep1);
+    CV_UNUSED(blockMatchingStep2);
+    CV_UNUSED(groupSize);
+    CV_UNUSED(slidingStep);
+    CV_UNUSED(beta);
+    CV_UNUSED(normType);
+    CV_UNUSED(step);
+    CV_UNUSED(transformType);
 }
 
 #endif
