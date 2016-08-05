@@ -59,7 +59,7 @@ using namespace cv::xphoto;
 #  define DUMP(image, path)
 #endif
 
-#ifdef OPENCV_ENABLE_NONFREE 
+#ifdef OPENCV_ENABLE_NONFREE
 
 namespace cvtest
 {
@@ -462,4 +462,4 @@ namespace cvtest
 
 }
 
-#endif  // OPENCV_ENABLE_NONFREE 
+#endif  // OPENCV_ENABLE_NONFREE

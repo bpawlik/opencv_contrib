@@ -42,7 +42,7 @@
 #include "opencv2/xphoto.hpp"
 #include "opencv2/core.hpp"
 
-#ifdef OPENCV_ENABLE_NONFREE 
+#ifdef OPENCV_ENABLE_NONFREE
 
 #include "bm3d_denoising_invoker_step1.hpp"
 #include "bm3d_denoising_invoker_step2.hpp"
@@ -55,7 +55,7 @@ namespace cv
 namespace xphoto
 {
 
-#ifdef OPENCV_ENABLE_NONFREE 
+#ifdef OPENCV_ENABLE_NONFREE
 
 template<typename ST, typename D, typename TT>
 static void bm3dDenoising_(
@@ -299,6 +299,10 @@ void bm3dDenoising(
     CV_UNUSED(normType);
     CV_UNUSED(step);
     CV_UNUSED(transformType);
+
+    CV_Error(Error::StsNotImplemented,
+        "This algorithm is patented and is excluded in this configuration;"
+        "Set OPENCV_ENABLE_NONFREE CMake option and rebuild the library");
 }
 
 void bm3dDenoising(
@@ -331,6 +335,10 @@ void bm3dDenoising(
     CV_UNUSED(normType);
     CV_UNUSED(step);
     CV_UNUSED(transformType);
+
+    CV_Error(Error::StsNotImplemented,
+        "This algorithm is patented and is excluded in this configuration;"
+        "Set OPENCV_ENABLE_NONFREE CMake option and rebuild the library");
 }
 
 #endif
